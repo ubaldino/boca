@@ -23,21 +23,9 @@ if(($ct = DBContestInfo($_SESSION["usertable"]["contestnumber"])) == null)
 if($ct["contestlocalsite"]==$ct["contestmainsite"]) $main=true; else $main=false;
 
 if ($main) {
-  if(isset($_GET["Number"]) && isset($_GET["Go"]) && is_numeric($_GET["Number"]) && $_GET["Number"]>0) {
-    $param = array();
-    $param['number'] = $_GET["Number"];
-    if(($n = DBNewSite($_SESSION["usertable"]["contestnumber"],null,$param)) === false) {
-      MSGError("Error creating site");
-      $n = 1;
-    }
-    ForceLoad("site.php?site=$n");
-  }
   if(isset($_GET["new"]) && $_GET["new"]=="1") {
-    if(($n = DBNewSite($_SESSION["usertable"]["contestnumber"])) === false) {
-      MSGError("Error creating site");
-      $n = 1;
-    }      
-    ForceLoad("site.php?site=$n");
+        $n = DBNewSite($_SESSION["usertable"]["contestnumber"]);
+        ForceLoad("site.php?site=$n");
   }
 }
 if (isset($_GET["site"]) && is_numeric($_GET["site"]))
@@ -76,30 +64,28 @@ if (isset($_POST["Submit2"]) && $_POST["Submit2"] == "Start Now") {
 	}
 	ForceLoad("site.php?site=$site");
 }
-if (isset($_POST["SubmitDC"]) && $_POST["SubmitDC"] == "Delete ALL clars") {
+if (isset($_POST["SubmitDC"]) && $_POST["SubmitDC"] == "Delete ALL site clars") {
 	if ($_POST["confirmation"] == "confirm") {
 		DBSiteDeleteAllClars ($_SESSION["usertable"]["contestnumber"], $site,
-			$_SESSION["usertable"]["usernumber"], $_SESSION["usertable"]["usersitenumber"]);
-		DBSiteDeleteAllClars ($_SESSION["usertable"]["contestnumber"], $ct["contestmainsite"],
 			$_SESSION["usertable"]["usernumber"], $_SESSION["usertable"]["usersitenumber"]);
 	}
 	ForceLoad("site.php?site=$site");
 }
-if (isset($_POST["SubmitDR"]) && $_POST["SubmitDR"] == "Delete ALL runs") {
+if (isset($_POST["SubmitDR"]) && $_POST["SubmitDR"] == "Delete ALL site runs") {
 	if ($_POST["confirmation"] == "confirm") {
 		DBSiteDeleteAllRuns ($_SESSION["usertable"]["contestnumber"], $site,
 			$_SESSION["usertable"]["usernumber"], $_SESSION["usertable"]["usersitenumber"]);
 	}
 	ForceLoad("site.php?site=$site");
 }
-if (isset($_POST["SubmitDT"]) && $_POST["SubmitDT"] == "Delete ALL tasks") {
+if (isset($_POST["SubmitDT"]) && $_POST["SubmitDT"] == "Delete ALL site tasks") {
 	if ($_POST["confirmation"] == "confirm") {
 		DBSiteDeleteAllTasks ($_SESSION["usertable"]["contestnumber"], $site,
 			$_SESSION["usertable"]["usernumber"], $_SESSION["usertable"]["usersitenumber"]);
 	}
 	ForceLoad("site.php?site=$site");
 }
-if (isset($_POST["SubmitDB"]) && $_POST["SubmitDB"] == "Delete ALL bkps") {
+if (isset($_POST["SubmitDB"]) && $_POST["SubmitDB"] == "Delete ALL site bkps") {
 	if ($_POST["confirmation"] == "confirm") {
 		DBSiteDeleteAllBkps ($_SESSION["usertable"]["contestnumber"], $site,
 			$_SESSION["usertable"]["usernumber"], $_SESSION["usertable"]["usersitenumber"]);
@@ -296,7 +282,7 @@ if ($main && isset($_FILES["importfile"]) && isset($_POST["Submit"]) && $_POST["
       }
     }
     function newsite() {
-      document.getElementById('normal').style.display = "block";
+      document.location='site.php?new=1';
     }
     function sitech(n) {
       if(n==null) {
@@ -532,10 +518,10 @@ echo "):</td>";
       <input type="submit" name="Logins" value="Enable logins" onClick="conf()">
 <br><br><br>
 
-      <input type="submit" name="SubmitDC" value="Delete ALL clars" onClick="conf2()">
-      <input type="submit" name="SubmitDR" value="Delete ALL runs" onClick="conf2()">
-      <input type="submit" name="SubmitDT" value="Delete ALL tasks" onClick="conf2()">
-      <input type="submit" name="SubmitDB" value="Delete ALL bkps" onClick="conf2()">
+      <input type="submit" name="SubmitDC" value="Delete ALL site clars" onClick="conf2()">
+      <input type="submit" name="SubmitDR" value="Delete ALL site runs" onClick="conf2()">
+      <input type="submit" name="SubmitDT" value="Delete ALL site tasks" onClick="conf2()">
+      <input type="submit" name="SubmitDB" value="Delete ALL site bkps" onClick="conf2()">
 <?php
 				}
 ?>
@@ -613,15 +599,7 @@ if($main) {
   </center>
 		<?php } ?>
 </form>
-<div id="normal">
-<div id="popupnew">
-<form action="site.php" id="formnew" method="get" name="formnew">
-<h2>Choose site number</h2>
-<input id="new" name="Number" placeholder="new" type="text">
-<input type="submit" name="Go" value="Go">
-</form>
-</div>
-</div>
-    
+
+
 </body>
 </html>

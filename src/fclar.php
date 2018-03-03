@@ -15,7 +15,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////
-// Last modified 26/jul/2017 by cassio@ime.usp.br
+// Last modified 06/sep/2013 by cassio@ime.usp.br
 
 function DBDropClarTable() {
 	 $c = DBConnect();
@@ -157,38 +157,10 @@ function DBUpdateClarC($contest, $usersite, $usernumber, $clarsite, $clarnumber,
 	$time = time();
 	$t = $b["currenttime"];
 
-	$theclar = DBRow($r,0);
-	if($type=="all" && $usersite != $theclar['clarsitenumber']) {
-	    $param = $theclar;
-	    $param['clarsitenumber'] = $usersite;
-	    $param['usernumber'] = $usernumber;
-	    $param['clarstatus'] = $status;
-	    $param['clarjudge'] = $usernumber;
-	    $param['clarjudgesite'] = $usersite;
-	    $param['claranswer'] = $answer;
-	    $param['clardatediffans'] = $t;
-	    $param['updatetime'] = time();
-	    $param['contest'] = $contest;	    
-	    if(DBNewClar($param, $c, false) !== false) {
-	      if(DBClarDelete($clarnumber, $theclar['clarsitenumber'], $contest, $usernumber, $usersite, $c)) {
-		LOGInfo("CLAR number $clarnumber site $clarsite contest $contest: user " . $theclar['usernumber'] . " replaced");
-	      } else {
-		DBExec($c, "rollback work", "DBUpdateClarC(rollback promoted)");
-		LOGError("CLAR number $clarnumber site $clarsite contest $contest should be promoted (delete)");
-		MSGError("Clarification not update (error promoting it for answer all)");
-		return false;
-	      }
-	    } else {
-	      DBExec($c, "rollback work", "DBUpdateClarC(rollback promoted2)");
-	      LOGError("CLAR number $clarnumber site $clarsite contest $contest should be promoted (insert)");
-	      MSGError("Clarification not update (error2 promoting it for answer all)");
-	      return false;
-	    }
-	} else 
-	  DBExec($c, "update clartable set clarstatus='$status', clarjudge=$usernumber, clarjudgesite=$usersite, " . 
-		 "claranswer='$answer', clardatediffans=$t, updatetime=".time()." " .
-		 "where contestnumber=$contest and clarnumber=$clarnumber and clarsitenumber=$clarsite",
-		 "DBUpdateClarC(update clar)");
+	DBExec($c, "update clartable set clarstatus='$status', clarjudge=$usernumber, clarjudgesite=$usersite, " . 
+		"claranswer='$answer', clardatediffans=$t, updatetime=".time()." " .
+		"where contestnumber=$contest and clarnumber=$clarnumber and clarsitenumber=$clarsite",
+               "DBUpdateClarC(update clar)");
 
 	DBExec($c, "commit work", "DBUpdateClarC(commit)");
 	LOGLevel("Clarification updated (clar=$clarnumber, site=$clarsite, contest=$contest, status=$status, " .
@@ -230,41 +202,33 @@ function DBClarGiveUp($number,$site,$contest, $usernumber, $usersite) {
 }
 //seta o status como 'deleted' de uma clarification que estava sendo respondida. Recebe o numero da clar, 
 //o numero do site e o numero do contest. Se nao conseguir retorna false.
-function DBClarDelete($number,$site,$contest,$user,$usersite,$c=null) {
-  $cw=false;
-  if($c == null) {
-    $c = DBConnect();
-    DBExec($c, "begin work", "DBClarDelete(transaction)");
-    $cw = true;
-  }
-  $r = DBExec($c, "select * from clartable as c where c.contestnumber=$contest and " .
-	      "c.clarsitenumber=$site and c.clarnumber=$number for update", "DBClarDelete(get clar for update)");
-  $n = DBnlines($r);
-  if ($n != 1) {
-    if($cw) DBExec($c, "rollback work", "DBClarDelete(rollback)");
-    LOGError("Unable to delete a clar. " .
-	     "(clar=$number, site=$site, contest=$contest)");
-    return false;
-  }
+function DBClarDelete($number,$site,$contest,$user,$usersite) {
+	$c = DBConnect();
+	DBExec($c, "begin work", "DBClarDelete(transaction)");
+	$r = DBExec($c, "select * from clartable as c where c.contestnumber=$contest and " .
+			 "c.clarsitenumber=$site and c.clarnumber=$number for update", "DBClarDelete(get clar for update)");
+	$n = DBnlines($r);
+	if ($n != 1) {
+		DBExec($c, "rollback work", "DBClarDelete(rollback)");
+		LogLevel("Unable to delete a clar. " .
+			"(clar=$number, site=$site, contest=$contest)",1);
+		return false;
+	}
 
-  DBExec($c, "update clartable set clarstatus='deleted', clarjudge=$user, clarjudgesite=$usersite, updatetime=" .
-	 time(). " where contestnumber=$contest and clarnumber=$number and clarsitenumber=$site",
-	 "DBClarDelete(update clar)");
-  
-  if ($cw) DBExec($c, "commit work", "DBClarDelete(commit)");
-  LOGInfo("Clarification deleted (clar=$number, site=$site, contest=$contest, user=$user(site=$usersite)).");
-  return true;
+	DBExec($c, "update clartable set clarstatus='deleted', clarjudge=$user, clarjudgesite=$usersite, updatetime=" .
+		   time(). " where contestnumber=$contest and clarnumber=$number and clarsitenumber=$site",
+               "DBClarDelete(update clar)");
+
+	DBExec($c, "commit work", "DBClarDelete(commit)");
+	LOGLevel("Clarification deleted (clar=$number, site=$site, contest=$contest, user=$user(site=$usersite)).", 3);
+	return true;
 }
-function DBNewClar($param,$c=null,$allowupdate=true) {
+function DBNewClar($param,$c=null) {
 	if(isset($param['contestnumber']) && !isset($param['contest'])) $param['contest']=$param['contestnumber'];
 	if(isset($param['sitenumber']) && !isset($param['site'])) $param['site']=$param['sitenumber'];
-	if(isset($param['clarsitenumber']) && !isset($param['site'])) $param['site']=$param['clarsitenumber'];
 	if(isset($param['usernumber']) && !isset($param['user'])) $param['user']=$param['usernumber'];
 	if(isset($param['number']) && !isset($param['clarnumber'])) $param['clarnumber']=$param['number'];
 
-	if(isset($param['clarproblem']) && !isset($param['problem'])) $param['problem']=$param['clarproblem'];
-	if(isset($param['clardata']) && !isset($param['question'])) $param['question']=$param['clardata'];
-	
 	$ac=array('contest','site','user','problem','question');
 	$ac1=array('clarnumber','clardate','clardatediff','clardatediffans','claranswer','clarstatus','clarjudge','clarjudgesite','updatetime');
 	$type['contest']=1;
@@ -287,7 +251,7 @@ function DBNewClar($param,$c=null,$allowupdate=true) {
 			MSGError("DBNewClar param error: $key is not numeric");
 			return false;
 		}
-		$$key = myhtmlspecialchars($param[$key]);
+		$$key = sanitizeText($param[$key]);
 	}
 	$t = time();
 	$clarnumber=-1;
@@ -301,7 +265,7 @@ function DBNewClar($param,$c=null,$allowupdate=true) {
 	$clarstatus='openclar';
 	foreach($ac1 as $key) {
 		if(isset($param[$key])) {
-			$$key = myhtmlspecialchars($param[$key]);
+			$$key = sanitizeText($param[$key]);
 			if(isset($type[$key]) && !is_numeric($param[$key])) {
 				MSGError("DBNewClar param error: $key is not numeric");
 				return false;
@@ -328,28 +292,23 @@ function DBNewClar($param,$c=null,$allowupdate=true) {
 			exit;
 		}
 		$a = DBRow($r,0);
-		$clarnumber = $a["nextclar"] + 1;
-		DBExec($c, "update sitetable set sitenextclar=$clarnumber" .
-		       " where sitenumber=$site and contestnumber=$contest and sitenextclar<$clarnumber",
-		       "DBNewClar(update site)");
-		$clarnumber = myunique($clarnumber);
-		$clarinc = $clarnumber;
+		$n = $a["nextclar"] + 1;
+		$clarnumber = $n;
 	} else {
 		$sql = "select * from clartable as t where t.contestnumber=$contest and " .
 			"t.clarsitenumber=$site and t.clarnumber=$clarnumber";
 		$r = DBExec ($c, $sql . " for update", "DBNewClar(get clar for update)");
 		$n = DBnlines($r);
 		if ($n > 0) {
-		  if(!$allowupdate) {
-		    if($cw) DBExec($c, "rollback work", "DBNewClar(rollback-allowupdate)");
-		    return false;
-		  }
-		  $insert=false;
-		  $lr = DBRow($r,0);
-		  $t = $lr['updatetime'];
+			$insert=false;
+			$lr = DBRow($r,0);
+			$t = $lr['updatetime'];
 		}
-		$clarinc = $clarnumber - 1;
+		$n = $clarnumber;
 	}
+	DBExec($c, "update sitetable set sitenextclar=$clarnumber, updatetime=" . $t . 
+		   " where sitenumber=$site and contestnumber=$contest and sitenextclar<$clarnumber",
+		   "DBNewClar(update site)");
 
 	if($clardatediff < 0) {
 		$b = DBSiteInfo($contest, $site, $c);
@@ -373,39 +332,15 @@ function DBNewClar($param,$c=null,$allowupdate=true) {
 
 	$ret=1;
 	if($insert) {
-	  if($clarinc >= $clarnumber) {
-	    while(true) {
-	      DBExec($c,"SAVEPOINT sp" . $clarnumber,"DBNewClar(insert clar sp)");
-	      if(DBExecNonStop($c, "INSERT INTO clartable (contestnumber, clarsitenumber, clarnumber, usernumber, clardate, " .
-			       "clardatediff, clardatediffans, clarproblem, clardata, claranswer, clarjudge, clarjudgesite, clarstatus, updatetime) VALUES " .
-			       "($contest, $site, $clarnumber, $user, $clardate, $clardatediff, $clardatediffans, $problem, '$question', " .
-			       "'$claranswer', $clarjudge, $clarjudgesite, '$clarstatus', $updatetime)",
-			       "DBNewClar(insert clar)")) break;
-	      DBExec($c,"ROLLBACK TO SAVEPOINT sp" . $clarnumber,"DBNewClar(insert clar sp rollback)");
-	      $clarnumber++;
-	      if($clarnumber > $clarinc + 3) break;
-	    }
-	    if($clarnumber > $clarinc + 3) {
-	      DBExec($c, "INSERT INTO clartable (contestnumber, clarsitenumber, clarnumber, usernumber, clardate, " .
-		     "clardatediff, clardatediffans, clarproblem, clardata, claranswer, clarjudge, clarjudgesite, clarstatus, updatetime) VALUES " .
-		     "($contest, $site, $clarnumber, $user, $clardate, $clardatediff, $clardatediffans, $problem, '$question', " .
-		     "'$claranswer', $clarjudge, $clarjudgesite, '$clarstatus', $updatetime)",
-		     "DBNewClar(insert clar)");
-	    }
-	  } else {
-	    if(!DBExecNonStop($c, "INSERT INTO clartable (contestnumber, clarsitenumber, clarnumber, usernumber, clardate, " .
-				 "clardatediff, clardatediffans, clarproblem, clardata, claranswer, clarjudge, clarjudgesite, clarstatus, updatetime) VALUES " .
-				 "($contest, $site, $clarnumber, $user, $clardate, $clardatediff, $clardatediffans, $problem, '$question', " .
-				 "'$claranswer', $clarjudge, $clarjudgesite, '$clarstatus', $updatetime)",
-				 "DBNewClar(insert clar)")) {
-	      if($cw) DBExec($c, "commit work", "DBNewClar(commit-insert-error)");
-	      return false;
-	    }
-	  }
-	  if($cw) DBExec($c, "commit work", "DBNewClar(commit-insert)");
-	  LOGLevel("User $user submitted a clarification (#$clarnumber) on site #$site " .
-		   "(problem=$problem, contest=$contest).",2);
-	  $ret=2;
+		DBExec($c, "INSERT INTO clartable (contestnumber, clarsitenumber, clarnumber, usernumber, clardate, " .
+			   "clardatediff, clardatediffans, clarproblem, clardata, claranswer, clarjudge, clarjudgesite, clarstatus, updatetime) VALUES " .
+			   "($contest, $site, $n, $user, $clardate, $clardatediff, $clardatediffans, $problem, '$question', " .
+			   "'$claranswer', $clarjudge, $clarjudgesite, '$clarstatus', $updatetime)",
+               "DBNewClar(insert clar)");
+		if($cw) DBExec($c, "commit work", "DBNewClar(commit-insert)");
+		LOGLevel("User $user submitted a clarification (#$n) on site #$site " .
+				 "(problem=$problem, contest=$contest).",2);
+		$ret=2;
 	} else {
 		if($updatetime > $t) {
 			$ret=2;
@@ -426,7 +361,7 @@ function DBNewClar($param,$c=null,$allowupdate=true) {
 		fwrite($fp, $question);
 		fclose($fp);
 	} else
-		 LOGLevel("Clarification not saved as file (clar=$clarnumber,site=$site,contest=$contest)", 1);
+		 LOGLevel("Clarification not saved as file (clar=$n,site=$site,contest=$contest)", 1);
 */
 }
 //pega uma clarification para responder. Recebe o numero da clar, o numero do site e o numero do contest.
@@ -514,7 +449,7 @@ function DBOpenClarsSNS($contest,$site,$st,$order='clar') {
                              "from clartable as c, problemtable as p " .
                              "where c.contestnumber=$contest and p.contestnumber=c.contestnumber and " .
                                     "c.clarproblem=p.problemnumber";
-	if (strpos($site,"x")===false) {
+	if ($site != "x") {
 		$str = explode(",", $site);
 		$sql .= " and (c.clarstatus='answeredall'";
 		for ($i=0;$i<count($str);$i++) {

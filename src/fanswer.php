@@ -15,7 +15,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////
-// Last modified 26/jul/2017 by cassio@ime.usp.br
+// Last modified 05/aug/2012 by cassio@ime.usp.br
 
 function DBDropAnswerTable() { 
 	 $c = DBConnect();
@@ -63,7 +63,7 @@ function DBDeleteAnswer($contest,$param,$c=null) {
 	$ac=array('number');
 	foreach($ac as $key) {
 		if(!isset($param[$key])) return false;
-		$$key = myhtmlspecialchars($param[$key]);
+		$$key = sanitizeText($param[$key]);
 	}
 
 	$cw = false;
@@ -95,10 +95,8 @@ function DBDeleteAnswer($contest,$param,$c=null) {
 function DBNewAnswer($contest, $param, $c=null) {
 	if(isset($param["action"]) && $param["action"]=="delete") {
 		return DBDeleteAnswer($contestnumber, $param, $c);
-	}	
-	if(isset($param['answernumber']) && !isset($param['number'])) $param['number']=$param['answernumber'];
-	if(isset($param['runanswer']) && !isset($param['name'])) $param['name']=$param['runanswer'];
-	
+	}
+
 	$ac=array('number','name','yes');
 	$type['number']=1;
 	foreach($ac as $key) {
@@ -106,7 +104,7 @@ function DBNewAnswer($contest, $param, $c=null) {
 			MSGError("DBNewAnswer param error: $key is not set");
 			return false;
 		}
-		$$key = myhtmlspecialchars($param[$key]);
+		$$key = sanitizeText($param[$key]);
 		if(isset($type[$key]) && !is_numeric($param[$key])) {
 			MSGError("DBNewAnswer param error: $key is not numeric");
 			return false;

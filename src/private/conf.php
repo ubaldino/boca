@@ -20,9 +20,8 @@
 function globalconf() {
  $conf["dbencoding"]="UTF8";
  $conf["dbclientenc"]="UTF8";
- $conf['doenc']=false;
 
- $conf["dblocal"]="false"; // use unix socket to connect?
+  $conf["dblocal"]="false"; // use unix socket to connect?
 $conf["dbhost"]="localhost";
 $conf["dbport"]="5432";
 

@@ -22,40 +22,7 @@ $contest=$_SESSION["usertable"]["contestnumber"];
 
 if(($ct = DBContestInfo($contest)) == null)
 	ForceLoad("$loc/index.php");
-$localsite=$ct["contestlocalsite"];
-$mainsite=$ct["contestmainsite"];
-if ($localsite == $mainsite) $main=true; else $main=false;
-
-if($main) {
-  if (isset($_POST["SubmitDC"]) && $_POST["SubmitDC"] == "Delete ALL clars") {
-	if ($_POST["confirmation"] == "confirm") {
-		DBSiteDeleteAllClars ($_SESSION["usertable"]["contestnumber"], -1,
-			$_SESSION["usertable"]["usernumber"], $_SESSION["usertable"]["usersitenumber"]);
-	}
-	ForceLoad("contest.php");
-  }
-  if (isset($_POST["SubmitDR"]) && $_POST["SubmitDR"] == "Delete ALL runs") {
-	if ($_POST["confirmation"] == "confirm") {
-		DBSiteDeleteAllRuns ($_SESSION["usertable"]["contestnumber"], -1,
-			$_SESSION["usertable"]["usernumber"], $_SESSION["usertable"]["usersitenumber"]);
-	}
-	ForceLoad("contest.php");
-  }
-  if (isset($_POST["SubmitDT"]) && $_POST["SubmitDT"] == "Delete ALL tasks") {
-	if ($_POST["confirmation"] == "confirm") {
-		DBSiteDeleteAllTasks ($_SESSION["usertable"]["contestnumber"], -1,
-			$_SESSION["usertable"]["usernumber"], $_SESSION["usertable"]["usersitenumber"]);
-	}
-	ForceLoad("contest.php");
-  }
-  if (isset($_POST["SubmitDB"]) && $_POST["SubmitDB"] == "Delete ALL bkps") {
-	if ($_POST["confirmation"] == "confirm") {
-		DBSiteDeleteAllBkps ($_SESSION["usertable"]["contestnumber"], -1,
-			$_SESSION["usertable"]["usernumber"], $_SESSION["usertable"]["usersitenumber"]);
-	}
-	ForceLoad("contest.php");
-  }
-}
+if ($ct["contestlocalsite"]==$ct["contestmainsite"]) $main=true; else $main=false;
 
 if (isset($_POST["Submit3"]) && isset($_POST["penalty"]) && is_numeric($_POST["penalty"]) && 
     isset($_POST["maxfilesize"]) && isset($_POST["mainsite"]) && isset($_POST["name"]) && 
@@ -139,10 +106,6 @@ if (isset($_POST["Submit3"]) && isset($_POST["penalty"]) && is_numeric($_POST["p
 			DBGetFullProblemData($_SESSION["usertable"]["contestnumber"],true);
 		}
 	}
-	if(($ct = DBContestInfo($contest)) == null)
-	  ForceLoad("$loc/index.php");
-	if ($ct["contestlocalsite"]!=$localsite || $mainsite!=$ct["contestmainsite"])
-	  ForceLoad("$loc/index.php");
 	ForceLoad("contest.php");
 }
 ?>
@@ -247,11 +210,6 @@ echo $contest;
           <input type="text" name="mainsiteurl" value="<?php echo $ct["contestmainsiteurl"]; ?>" size="40" maxlength="200" />
         </td>
       </tr>
-<?php
-  $exd = explode(' ',$ct["contestmainsiteurl"]);
-  if(count($exd) >= 4 && is_numeric($exd[3]) && $exd[3] > 0)
-    echo "<tr><td width=\"35%\" align=right>Last update from mainsite:</td><td width=\"65%\">" . dateconv($exd[3]) . "</td></tr>\n";
-?>
       <tr>
 							<td width="35%" align=right>Unlock password (only use it within a <b>secure network</b>):</td>
         <td width="65%">
@@ -259,6 +217,7 @@ echo $contest;
 		   <?php if(strlen($ct["contestunlockkey"]) > 1) echo "<b><= has been set</b>"; ?>
         </td>
       </tr>
+<?php if($main) { ?>
       <tr>
 							<td width="35%" align=right>Keys (only use it within a <b>secure network</b>):</td>
         <td width="65%">
@@ -266,6 +225,7 @@ echo $contest;
 		   <?php if(strlen($ct["contestkeys"]) > 32) echo "<b><= has been set</b>"; ?>
         </td>
       </tr>
+	  <?php } ?>
       <tr>
         <td width="35%" align=right>Contest main site number:</td>
         <td width="65%">
@@ -285,11 +245,6 @@ echo $contest;
 	  <input type="submit" name="Submit3" value="Update" onClick="conf()">
 	   <input type="submit" name="Submit3" value="Update Contest and All Sites" onClick="conf2()">
 	   <input type="reset" name="Submit4" value="Clear">
-<br><br>
-      <input type="submit" name="SubmitDC" value="Delete ALL clars" onClick="conf2()">
-      <input type="submit" name="SubmitDR" value="Delete ALL runs" onClick="conf2()">
-      <input type="submit" name="SubmitDT" value="Delete ALL tasks" onClick="conf2()">
-      <input type="submit" name="SubmitDB" value="Delete ALL bkps" onClick="conf2()">
 <?php } else { ?>
       <input type="submit" name="Submit3" value="Update" onClick="conf()">
 	   <input type="submit" name="Submit3" value="Become Main Site" onClick="conf3()">

@@ -65,8 +65,7 @@ if (isset($_GET["done"]) && is_numeric($_GET["done"]) && isset($_GET["site"]) &&
 if (($s=DBSiteInfo($_SESSION["usertable"]["contestnumber"],$_SESSION["usertable"]["usersitenumber"])) == null)
         ForceLoad("../index.php");
 
-//$task = DBOpenTasksInSites($_SESSION["usertable"]["contestnumber"], $s["sitetasking"]);
-$task = DBAllTasksInSites($_SESSION["usertable"]["contestnumber"], $s["sitetasking"], 'task');
+$task = DBOpenTasksInSites($_SESSION["usertable"]["contestnumber"], $s["sitetasking"]);
 
 $ds = DIRECTORY_SEPARATOR;
 if($ds=="") $ds = "/";
@@ -79,7 +78,7 @@ if(is_readable($_SESSION["locr"] . $ds . 'private' . $ds . 'score.sep')) {
 		if(isset($lin[1]) && $_SESSION["usertable"]["usertype"]!='admin') {
 			$arr=explode(' ',trim($lin[1]));
 			for($arri=0;$arri<count($arr);$arri++)
-				if($arr[$arri] != '' && preg_match($arr[$arri],$_SESSION["usertable"]["username"])) break;
+				if(preg_match($arr[$arri],$_SESSION["usertable"]["username"])) break;
 			if($arri>=count($arr)) continue;
 		}
 		$lin = trim($lin[0]);
@@ -128,7 +127,8 @@ for ($i=0; $i<count($task); $i++) {
   }
   echo "</td>\n";
   if ($task[$i]["oid"] != null) {
-    $msg = "///// " . $task[$i]["username"]." -- ". substr($task[$i]["fullname"],0,60) ." -- ".$task[$i]["username"]." ";
+    $msg = "///// " . $task[$i]["username"]." ".$task[$i]["username"]." ".$task[$i]["username"]." ".
+           $task[$i]["username"]." ".$task[$i]["username"]." ".$task[$i]["username"];
     echo "  <td nowrap><a href=\"../filedownload.php?" . filedownload($task[$i]["oid"],$task[$i]["filename"]) .
         "\">" . $task[$i]["filename"] . "</a>";
     echo " <a href=\"#\" class=menu style=\"font-weight:bold\" onClick=\"window.open('../filewindow.php?".

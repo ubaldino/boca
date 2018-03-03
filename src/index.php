@@ -34,9 +34,9 @@ require_once("db.php");
 
 if (!isset($_GET["name"])) {
 	if (ValidSession())
-	  DBLogOut($_SESSION["usertable"]["contestnumber"], 
-		   $_SESSION["usertable"]["usersitenumber"], $_SESSION["usertable"]["usernumber"],
-		   $_SESSION["usertable"]["username"]=='admin');
+		DBLogOut($_SESSION["usertable"]["contestnumber"], 
+				 $_SESSION["usertable"]["usersitenumber"], $_SESSION["usertable"]["usernumber"],
+				 $_SESSION["usertable"]["username"]=='admin');
 	session_unset();
 	session_destroy();
 	session_start();
@@ -83,8 +83,8 @@ if(function_exists("globalconf") && function_exists("sanitizeVariables")) {
 		if(($ct = DBContestInfo($_SESSION["usertable"]["contestnumber"])) == null)
 			ForceLoad("index.php");
 		if($ct["contestlocalsite"]==$ct["contestmainsite"]) $main=true; else $main=false;
-		if(isset($_GET['action']) && $_GET['action'] == 'transfer') {
-			echo "TRANSFER OK";
+		if(isset($_GET['action']) && $_GET['action'] == 'scoretransfer') {
+			echo "SCORETRANSFER OK";
 		} else {
 			if($main && $_SESSION["usertable"]["usertype"] == 'site') {
 				MSGError('Direct login of this user is not allowed');

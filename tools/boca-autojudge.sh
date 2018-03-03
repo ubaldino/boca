@@ -30,13 +30,13 @@ fi
 
 . /etc/boca.conf
 
-if [[ "x$bdserver" == "x" && "x$bdcreated" == "x" ]];then
-  if grep dbhost $bocadir/src/private/conf.php|grep -q localhost;then
-    echo "It was found no evidence that this machine is running a BOCA BD"
-    echo "Please consider running 'boca-config-dbhost' before"
-    exit 2
-  fi
-fi
+# if [[ "x$bdserver" == "x" && "x$bdcreated" == "x" ]];then
+#   if grep dbhost $bocadir/src/private/conf.php|grep -q localhost;then
+#     echo "It was found no evidence that this machine is running a BOCA BD"
+#     echo "Please consider running 'boca-config-dbhost' before"
+#     exit 2
+#   fi
+# fi
 
 cd $bocadir/src/private
 php autojudging.php

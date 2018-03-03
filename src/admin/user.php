@@ -15,6 +15,9 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////
+// Last modified 26/oct/2014 by cassio@ime.usp.br
+//   allow passwords to be changed by default
+//
 require('header.php');
 
 if (isset($_GET["site"]) && isset($_GET["user"]) && is_numeric($_GET["site"]) && is_numeric($_GET["user"]) &&
@@ -49,7 +52,6 @@ if (isset($_POST["username"]) && isset($_POST["userfullname"]) && isset($_POST["
 	$param['permitip'] = htmlspecialchars($_POST["userip"]);
 	$param['contest'] = $_SESSION["usertable"]["contestnumber"];
 	$param['changepass']='t';
-	if(isset($_POST['changepass']) && $_POST['changepass'] != 't') $param['changepass']='f';
 /*
 	$param['user'] = myhtmlspecialchars($_POST["usernumber"]);
 	$param['site'] = myhtmlspecialchars($_POST["usersitenumber"]);
@@ -64,14 +66,13 @@ if (isset($_POST["username"]) && isset($_POST["userfullname"]) && isset($_POST["
 */
 
 
-	$passcheck = $_POST["passwordo"];
+	$passcheck = htmlspecialchars($_POST["passwordo"]);
 	$a = DBUserInfo($_SESSION["usertable"]["contestnumber"], $_SESSION["usertable"]["usersitenumber"], $_SESSION["usertable"]["usernumber"], null, false);
 	if(myhash($a['userpassword'] . session_id()) != $passcheck) {
 		MSGError('Admin password is incorrect');
 	} else {
 		if ($_POST["passwordn1"] == $_POST["passwordn2"]) {
-			$param['pass'] = bighexsub($_POST["passwordn1"],$a['userpassword']);
-			while(strlen($param['pass']) < strlen($a['userpassword'])) $param['pass'] = '0' . $param['pass'];
+			$param['pass'] = bighexsub(htmlspecialchars($_POST["passwordn1"]),$a['userpassword']);
 			if($param['user'] != 1000)
 				DBNewUser($param);
 		}
@@ -256,11 +257,9 @@ for ($i=0; $i < count($usr); $i++) {
 	 ($usr[$i]["usernumber"] != $_SESSION["usertable"]["usernumber"] || 
 	  $usr[$i]["usersitenumber"] != $_SESSION["usertable"]["usersitenumber"]))
 	  echo "  <td nowrap><a href=\"user.php?site=" . $usr[$i]["usersitenumber"] . "&user=" .
-		  $usr[$i]["usernumber"] . "\">" . $usr[$i]["usernumber"] . "</a>";
+		  $usr[$i]["usernumber"] . "\">" . $usr[$i]["usernumber"] . "</a></td>\n";
   else
-	  echo "  <td nowrap>" . $usr[$i]["usernumber"];
-  if($usr[$i]['userenabled'] != 't' && $usr[$i]['userlastlogin'] < 1) echo "(inactive)";
-  echo "</td>\n";
+	  echo "  <td nowrap>" . $usr[$i]["usernumber"] . "</td>\n";
 
   echo "  <td nowrap>" . $usr[$i]["usersitenumber"] . "</td>\n";
   echo "  <td nowrap>" . $usr[$i]["username"] . "&nbsp;</td>\n";
@@ -444,15 +443,7 @@ if (isset($u)) {
       <tr> 
         <td width="35%" align=right>User Description:</td>
         <td width="65%">
-	  <input type="text" name="userdesc" value="<?php if(isset($u)) { 
-if($u['usershortinstitution']!='')
-  echo '[' . $u['usershortinstitution'] .']';
-if($u['userflag']!='') {
-  echo '[' . $u['userflag'];
-  if($u['usersitename']!='') echo ',' . $u['usersitename'];
-  echo ']';
-}
-echo $u["userdesc"]; } ?>" size="50" maxlength="300" />
+	  <input type="text" name="userdesc" value="<?php if(isset($u)) echo $u["userdesc"]; ?>" size="50" maxlength="300" />
         </td>
       </tr>
       <tr> 
@@ -471,15 +462,6 @@ echo $u["userdesc"]; } ?>" size="50" maxlength="300" />
         <td width="35%" align=right>Retype Password:</td>
         <td width="65%">
 	  <input type="password" name="passwordn2" value="" size="20" maxlength="200" />
-        </td>
-      </tr>
-      <tr> 
-        <td width="35%" align=right>Allow password change:</td>
-        <td width="65%">
-		<select name="changepass">
-		<option <?php if(isset($u) && $u["changepassword"]) echo "selected"; ?> value="t">Yes</option>
-		<option <?php if(!isset($u) || !$u["changepassword"]) echo "selected"; ?> value="f">No</option>
-		</select>
         </td>
       </tr>
       <tr> 

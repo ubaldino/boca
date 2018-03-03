@@ -58,9 +58,8 @@ if(isset($_GET['remote']) && is_numeric($_GET['remote'])) {
 	ob_end_flush();
 
 	if (isset($_SESSION["usertable"])) {
-        $tmp = DBUserInfo($_SESSION["usertable"]["contestnumber"],
-						  $_SESSION["usertable"]["usersitenumber"], $_SESSION["usertable"]["usernumber"]);
-		$_SESSION["usertable"]['usersessionextra'] = $tmp['usersessionextra'];
+        $_SESSION["usertable"] = DBUserInfo($_SESSION["usertable"]["contestnumber"],
+											$_SESSION["usertable"]["usersitenumber"], $_SESSION["usertable"]["usernumber"]);
 	} else {
 		IntrusionNotify("scoretable1");
         ForceLoad("index.php");
@@ -79,16 +78,16 @@ $loc = $_SESSION["loc"];
 if(!isset($detail)) $detail=true;
 if(!isset($final)) $final=false;
 $scoredelay["admin"] = 3;
-$scoredelay["score"] = 30;
-$scoredelay["team"] = 10;
-$scoredelay["judge"] = 5;
-$scoredelay["staff"] = 30;
-$actualdelay = 60;
+$scoredelay["score"] = 120;
+$scoredelay["team"] = 120;
+$scoredelay["judge"] = 120;
+$scoredelay["staff"] = 600;
+$actualdelay = 120;
 if(isset($scoredelay[$_SESSION["usertable"]["usertype"]])) $actualdelay = $scoredelay[$_SESSION["usertable"]["usertype"]];
 $ds = DIRECTORY_SEPARATOR;
 if($ds=="") $ds = "/";
 
-$scoretmp = $_SESSION["locr"] . $ds . "private" . $ds . "scoretmp" . $ds . $_SESSION["usertable"]["usertype"] . '-' . $_SESSION["usertable"]["username"] . ".php";
+$scoretmp = $_SESSION["locr"] . $ds . "private" . $ds . "scoretmp" . $ds . $_SESSION["usertable"]["usertype"] . ".php";
 $redo = TRUE;
 if(file_exists($scoretmp)) {
 	if(($strtmp = file_get_contents($scoretmp,FALSE,NULL,-1,100000)) !== FALSE) {
@@ -106,7 +105,6 @@ if($_SESSION["usertable"]["usertype"]=='score' || $_SESSION["usertable"]["userty
   if(is_writable($remotedir)) {
 	if($redo || !is_readable($destination)) {
 	  if(($fp = @fopen($destination . ".lck",'x')) !== false) {
-
 		if (($s = DBSiteInfo($_SESSION["usertable"]["contestnumber"],$_SESSION["usertable"]["usersitenumber"])) == null)
 			ForceLoad("index.php");
 		
@@ -150,7 +148,7 @@ if($_SESSION["usertable"]["usertype"]=='score' || $_SESSION["usertable"]["userty
 	}
   }
 }
-
+//@LOGError('aaa');
 if(isset($_GET["remote"])) {
 	if(is_numeric($_GET["remote"])) {
 		if($_GET["remote"]==-42) {
@@ -314,8 +312,21 @@ if($redo) {
 		else {
 */
 			$_SESSION["scoreblink"][$score[$e]["username"]."-".$score[$e]["site"]]=0;
-			$strtmp .= "  <td nowrap>" . $score[$e]["username"]."/".$score[$e]["site"] . " ";
-			$strtmp .= "<td>" . $score[$e]["userfullname"];
+$sss=$score[$e]["site"];
+if($sss==110) $sss='CUB';
+if($sss==111) $sss='DOM';
+if($sss==9999) $sss='TEST';
+if($sss==101) $sss='BRA';
+if($sss==102) $sss='COL';
+if($sss==103) $sss='VEN';
+if($sss==104) $sss='PAN';
+if($sss==105) $sss='ARG';
+if($sss==106) $sss='BOL';
+if($sss==107) $sss='CHI';
+if($sss==108) $sss='PER';
+if($sss==109) $sss='MEX';
+			$strtmp .= "  <td nowrap>" . $score[$e]["username"]."/".$sss . " ";
+			$strtmp .= "<td>" . $score[$e]["userfullname"]."&nbsp;";
 //		}
 		$_SESSION["scorepos"][$score[$e]["username"]."-".$score[$e]["site"]] = $cg2;
 

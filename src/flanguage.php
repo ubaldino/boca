@@ -15,7 +15,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////
-// Last modified 26/jul/2017 by cassio@ime.usp.br
+// Last modified 05/aug/2012 by cassio@ime.usp.br
 function DBDropLangTable() {
 	$c = DBConnect();
 	$r = DBExec($c, "drop table \"langtable\"", "DBDropLangTable(drop table)");
@@ -64,7 +64,7 @@ function DBDeleteLanguage($contestnumber, $param, $c=null) {
 			MSGError("DBDeleteLanguage param error: $key not found");
 			return false;
 		}
-		$$key = sanitizeFilename($param[$key]);
+		$$key = sanitizeText($param[$key]);
 	}
 	$cw = false;
 	if($c == null) {
@@ -97,11 +97,6 @@ function DBNewLanguage($contestnumber, $param, $c=null) {
 	if(isset($param["action"]) && $param["action"]=="delete") {
 		return DBDeleteLanguage($contestnumber, $param, $c);
 	}
-
-	if(isset($param['langnumber']) && !isset($param['number'])) $param['number']=$param['langnumber'];
-	if(isset($param['langname']) && !isset($param['name'])) $param['name']=$param['langname'];
-	if(isset($param['langextension']) && !isset($param['extension'])) $param['extension']=$param['langextension'];
-	
 	$ac=array('number','name');
 	$ac1=array('updatetime','extension');
 	$type['number']=1;
@@ -116,12 +111,12 @@ function DBNewLanguage($contestnumber, $param, $c=null) {
 			MSGError("DBNewLanguage param error: $key is not numeric");
 			return false;
 		}
-		$$key = sanitizeFilename($param[$key]);
+		$$key = sanitizeText($param[$key]);
 	}
 	$updatetime=-1;
 	foreach($ac1 as $key) {
 		if(isset($param[$key])) {
-			$$key = sanitizeFilename($param[$key]);
+			$$key = sanitizeText($param[$key]);
 			if(isset($type[$key]) && !is_numeric($param[$key])) {
 				MSGError("DBNewLanguage param error: $key is not numeric");
 				return false;

@@ -16,7 +16,7 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////
 // Last modified 08/aug/2015 by cassio@ime.usp.br
-if (!isset($_POST["confirmation"]) || $_POST["confirmation"] != "confirm")
+if ($_POST["confirmation"] != "confirm")
 	unset($_POST['noflush']);
 
 require('header.php');
@@ -94,9 +94,12 @@ if(isset($_POST['Submit5']) && $_POST['Submit5']=='Send') {
 			@mkdir($dir . $ds . 'output');
 			@mkdir($dir . $ds . 'tests');
 			@mkdir($dir . $ds . 'description');
-			$filea = array('compare' . $ds . 'c','compare' . $ds . 'cpp','compare' . $ds . 'java',
-						   'compile' . $ds . 'c','compile' . $ds . 'cpp','compile' . $ds . 'java',
-						   'run' . $ds . 'c','run' . $ds . 'cpp','run' . $ds . 'java');
+
+$filea = array(
+                'compare'.$ds.'c','compare'.$ds.'cpp','compare'.$ds.'java','compare'.$ds.'cc','compare'.$ds.'py2','compare'.$ds.'py3','compile'.$ds.'c','compile'.$ds.'cpp','compile'.$ds.'java','compile'.$ds.'cc','compile'.$ds.'py2','compile'.$ds.'py3','run'.$ds.'c','run'.$ds.'cpp','run'.$ds.'java','run'.$ds.'cc','run'.$ds.'py2','run'.$ds.'py3'
+            );
+
+
 			foreach($filea as $file) {
 				$rfile=$locr . $ds . '..' . $ds . 'doc' . $ds . 'problemexamples' . $ds . 'problemtemplate' . $ds . $file;
 				if(is_readable($rfile)) {
@@ -110,11 +113,16 @@ if(isset($_POST['Submit5']) && $_POST['Submit5']=='Send') {
 				}
 			}
 			$tl = explode(',',$_POST['timelimit']);
-			if(!isset($tl[1]) || !is_numeric(trim($tl[1]))) $tl[1]='1';
-			$str = "echo " . trim($tl[0]) . "\necho " . trim($tl[1]) . "\necho 512\necho " . floor(10 + $size1 / 512) . "\nexit 0\n";
-			file_put_contents($dir . $ds . 'limits' . $ds . 'c',$str);
+            if(!isset($tl[0]) || !is_numeric(trim($tl[0]))) $tl[0]='5120';
+            if(!isset($tl[1]) || !is_numeric(trim($tl[1]))) $tl[1]='1';
+            $str = "echo " . trim($tl[0]) . "\necho " . trim($tl[1]) . "\necho 512\necho " . floor(10 + $size1 / 512) . "\nexit 0\n";
+            file_put_contents($dir . $ds . 'limits' . $ds . 'c',$str);
 			file_put_contents($dir . $ds . 'limits' . $ds . 'cpp',$str);
 			file_put_contents($dir . $ds . 'limits' . $ds . 'java',$str);
+            file_put_contents($dir . $ds . 'limits' . $ds . 'cc',$str);
+            file_put_contents($dir . $ds . 'limits' . $ds . 'py2',$str);
+            file_put_contents($dir . $ds . 'limits' . $ds . 'py3',$str);
+
 			$str = "basename=" . trim($_POST['basename']) . "\nfullname=" . trim($_POST['fullname']);
 			if($name2) {
 				@copy($temp2, $dir . $ds . 'description' . $ds . $name2);
@@ -166,7 +174,7 @@ if(isset($_POST['Submit5']) && $_POST['Submit5']=='Send') {
 	ForceLoad('problem.php');
 }
 
-if (isset($_POST["Submit3"]) && isset($_POST["problemnumber"]) && is_numeric($_POST["problemnumber"]) && 
+if (isset($_POST["Submit3"]) && isset($_POST["problemnumber"]) && is_numeric($_POST["problemnumber"]) &&
     isset($_POST["problemname"]) && $_POST["problemname"] != "") {
 	if(strpos(trim($_POST["problemname"]),' ')!==false) {
 		$_POST["confirmation"]='';
@@ -190,35 +198,12 @@ if (isset($_POST["Submit3"]) && isset($_POST["problemnumber"]) && is_numeric($_P
 		$param['inputfilename'] = $name;
 		$param['inputfilepath'] = $temp;
 		$param['fake'] = 'f';
-		$param['colorname'] = trim($_POST["colorname"]);
-		$param['color'] = trim($_POST["color"]);
+		$param['colorname'] = $_POST["colorname"];
+		$param['color'] = $_POST["color"];
 		DBNewProblem ($_SESSION["usertable"]["contestnumber"], $param);
 	}
 	}
 	ForceLoad("problem.php");
-}
-
-$prob = DBGetFullProblemData($_SESSION["usertable"]["contestnumber"],true);
-for ($i=0; $i<count($prob); $i++) {
-  if($prob[$i]["fake"]!='t') {
-    if (isset($_POST["SubmitProblem" . $prob[$i]['number']]) && $_POST["SubmitProblem" . $prob[$i]['number']] == 'Update' &&
-	isset($_POST["colorname" . $prob[$i]['number']]) && strlen($_POST["colorname" . $prob[$i]['number']]) <= 100 && 
-	isset($_POST["color" . $prob[$i]['number']]) && strlen($_POST["color" . $prob[$i]['number']]) <= 6 && 
-	isset($_POST["problemname" . $prob[$i]['number']]) && $_POST["problemname" . $prob[$i]['number']] != "" && strlen($_POST["problemname" . $prob[$i]['number']]) <= 20) {
-      if(strpos(trim($_POST["problemname" . $prob[$i]['number']]),' ')!==false) {
-	MSGError('Problem short name cannot have spaces');
-      } else {
-	$param = array();
-	$param['number'] = $prob[$i]['number'];
-	$param['name'] = trim($_POST["problemname" . $prob[$i]['number']]);
-	$param['fake'] = 'f';
-	$param['colorname'] = trim($_POST["colorname" . $prob[$i]['number']]);
-	$param['color'] = trim($_POST["color" . $prob[$i]['number']]);
-	DBNewProblem ($_SESSION["usertable"]["contestnumber"], $param);
-      }
-      ForceLoad("problem.php");
-    }
-  }
 }
 ?>
 <br>
@@ -242,7 +227,6 @@ for ($i=0; $i<count($prob); $i++) {
 	  }
     }
   </script>
-<form name="form0" enctype="multipart/form-data" method="post" action="problem.php">
 <table width="100%" border=1>
  <tr>
   <td><b>Problem #</b></td>
@@ -256,31 +240,27 @@ for ($i=0; $i<count($prob); $i++) {
   <td><b>Color</b></td>
  </tr>
 <?php
+	$prob = DBGetFullProblemData($_SESSION["usertable"]["contestnumber"],true);
 for ($i=0; $i<count($prob); $i++) {
   echo " <tr>\n";
   if($prob[$i]["fake"]!='t') {
 	  if(strpos($prob[$i]["fullname"],"(DEL)") !== false) {
-		  echo "  <td nowrap><a href=\"javascript: conf3('problem.php?delete=" . $prob[$i]["number"] . "&input=" . rawurlencode($prob[$i]["inputfilename"]) . 
+		  echo "  <td nowrap><a href=\"javascript: conf3('problem.php?delete=" . $prob[$i]["number"] . "&input=" . rawurlencode($prob[$i]["inputfilename"]) .
 			  "')\">" . $prob[$i]["number"];
 		  echo "(deleted)";
 	  } else {
-		  echo "  <td nowrap><a href=\"javascript: conf2('problem.php?delete=" . $prob[$i]["number"] . "&input=" . rawurlencode($prob[$i]["inputfilename"]) . 
+		  echo "  <td nowrap><a href=\"javascript: conf2('problem.php?delete=" . $prob[$i]["number"] . "&input=" . rawurlencode($prob[$i]["inputfilename"]) .
 			  "')\">" . $prob[$i]["number"];
 	  }
 	  echo "</a></td>\n";
-	  echo "<input type=hidden name=\"problemname" . $prob[$i]['number'] . "\" value=\"" . $prob[$i]["name"] . "\" />";
-	  echo "  <td nowrap>" . $prob[$i]["name"] . "</td>\n";
-	  //echo "  <td nowrap>";
-	  //echo "<input type=\"text\" name=\"problemname" . $prob[$i]['number'] . "\" value=\"" . $prob[$i]["name"] . "\" size=\"4\" maxlength=\"20\" />";
-	  //echo "</td>\n";
   } else {
     echo "  <td nowrap>" . $prob[$i]["number"] . " (fake)</td>\n";
-    echo "  <td nowrap>" . $prob[$i]["name"] . "</td>\n";
   }
+  echo "  <td nowrap>" . $prob[$i]["name"] . "</td>\n";
   echo "  <td nowrap>" . $prob[$i]["fullname"] . "&nbsp;</td>\n";
   echo "  <td nowrap>" . $prob[$i]["basefilename"] . "&nbsp;</td>\n";
   if (isset($prob[$i]["descoid"]) && $prob[$i]["descoid"] != null && isset($prob[$i]["descfilename"])) {
-	  echo "  <td nowrap><a href=\"../filedownload.php?" . filedownload($prob[$i]["descoid"], $prob[$i]["descfilename"]) . "\">" . 
+	  echo "  <td nowrap><a href=\"../filedownload.php?" . filedownload($prob[$i]["descoid"], $prob[$i]["descfilename"]) . "\">" .
 		  basename($prob[$i]["descfilename"]) . "</td>\n";
   }
   else
@@ -288,8 +268,8 @@ for ($i=0; $i<count($prob); $i++) {
   if ($prob[$i]["inputoid"] != null) {
     $tx = $prob[$i]["inputhash"];
     echo "  <td nowrap><a href=\"../filedownload.php?" . filedownload($prob[$i]["inputoid"] ,$prob[$i]["inputfilename"]) ."\">" .
-		$prob[$i]["inputfilename"] . "</a> " . 
-		"<img title=\"hash: $tx\" alt=\"$tx\" width=\"25\" src=\"../images/bigballoontransp-hash.png\" />" . 
+		$prob[$i]["inputfilename"] . "</a> " .
+		"<img title=\"hash: $tx\" alt=\"$tx\" width=\"25\" src=\"../images/bigballoontransp-hash.png\" />" .
         "</td>\n";
   }
   else
@@ -297,9 +277,9 @@ for ($i=0; $i<count($prob); $i++) {
 /*
   if ($prob[$i]["soloid"] != null) {
     $tx = $prob[$i]["solhash"];
-    echo "  <td nowrap><a href=\"../filedownload.php?" . filedownload($prob[$i]["soloid"],$prob[$i]["solfilename"]) ."\">" . 
+    echo "  <td nowrap><a href=\"../filedownload.php?" . filedownload($prob[$i]["soloid"],$prob[$i]["solfilename"]) ."\">" .
 	$prob[$i]["solfilename"] . "</a> ".
-	"<img title=\"hash: $tx\" alt=\"$tx\" width=\"25\" src=\"../images/bigballoontransp-hash.png\" />" . 
+	"<img title=\"hash: $tx\" alt=\"$tx\" width=\"25\" src=\"../images/bigballoontransp-hash.png\" />" .
 	"</td>\n";
   }
   else
@@ -309,20 +289,15 @@ for ($i=0; $i<count($prob); $i++) {
   else
     echo "  <td nowrap>&nbsp;</td>\n";
 */
-  echo "  <td nowrap>";
-  if($prob[$i]["fake"]!='t') {
-    if ($prob[$i]["color"]!="") {
-      echo "<img title=\"".$prob[$i]["color"]."\" alt=\"".$prob[$i]["colorname"]."\" width=\"25\" src=\"" . 
-	balloonurl($prob[$i]["color"]) . "\" />\n";
-    }
-    echo "<input type=\"text\" name=\"colorname" . $prob[$i]['number'] . "\" value=\"" . $prob[$i]["colorname"] . "\" size=\"10\" maxlength=\"100\" />";
-    echo "<input type=\"text\" name=\"color" . $prob[$i]['number'] . "\" value=\"" . $prob[$i]["color"]. "\" size=\"6\" maxlength=\"6\" />";
-    echo "<input type=\"submit\" name=\"SubmitProblem" . $prob[$i]["number"] . "\" value=\"Update\">";
-  } else echo "&nbsp;";
-  echo "</td>\n";
+  if ($prob[$i]["color"]!="") {
+	  echo "  <td nowrap>" . $prob[$i]["colorname"] .
+		  "<img title=\"".$prob[$i]["color"]."\" alt=\"".$prob[$i]["colorname"]."\" width=\"25\" src=\"" .
+		  balloonurl($prob[$i]["color"]) . "\" /></td>\n";
+  } else
+    echo "  <td nowrap>&nbsp;</td>\n";
   echo " </tr>\n";
 }
-echo "</table></form>";
+echo "</table>";
 if (count($prob) == 0) echo "<br><center><b><font color=\"#ff0000\">NO PROBLEMS DEFINED</font></b></center>";
 
 ?>

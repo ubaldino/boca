@@ -15,7 +15,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////
-//Last updated 29/aug/2017 by cassio@ime.usp.br
+//Last updated 11/nov/2015 by cassio@ime.usp.br
 //
 function DBDropContestTable() {
 	 $c = DBConnect();
@@ -120,15 +120,11 @@ CREATE TABLE \"sitetimetable\" (
         $r = DBExec($c, "REVOKE ALL ON \"sitetimetable\" FROM PUBLIC", "DBCreateSiteTimeTable(revoke public)");
 	$r = DBExec($c, "GRANT ALL ON \"sitetimetable\" TO \"".$conf["dbuser"]."\"", "DBCreateSiteTimeTable(grant bocauser)");
 	$r = DBExec($c, "CREATE UNIQUE INDEX \"sitetime_index\" ON \"sitetimetable\" USING btree ".
-	     "(\"contestnumber\" int4_ops, \"sitenumber\" int4_ops, \"sitestartdate\" int4_ops)", 
+	     "(\"contestnumber\" int4_ops, \"sitenumber\" int4_ops, \"sitestartdate\" int4_ops)",
 	     "DBCreateSiteTimeTable(create index)");
 	$r = DBexec($c, "CREATE INDEX \"sitetimesite_index\" ON \"sitetimetable\" USING btree ".
 	            "(\"contestnumber\" int4_ops, \"sitenumber\" int4_ops)", "DBCreateSiteTimeTable(create site_index)");
 }
-// begin; update answertable set updatetime=EXTRACT(EPOCH FROM now());
-// begin; update langtable set updatetime=EXTRACT(EPOCH FROM now()); select * from langtable;
-// begin; update problemtable set updatetime=EXTRACT(EPOCH FROM now()); select * from problemtable;
-
 function DBDropUserTable() {
 	 $c = DBConnect();
 	 $r = DBExec($c, "drop table \"usertable\"", "DBDropUserTable(drop table)");
@@ -167,7 +163,7 @@ CREATE TABLE \"usertable\" (
 	$r = DBExec($c, "REVOKE ALL ON \"usertable\" FROM PUBLIC", "DBCreateUserTable(revoke public)");
 	$r = DBExec($c, "GRANT ALL ON \"usertable\" TO \"".$conf["dbuser"]."\"", "DBCreateUserTable(grant bocauser)");
 	$r = DBExec($c, "CREATE UNIQUE INDEX \"user_index\" ON \"usertable\" USING btree ".
-	     "(\"contestnumber\" int4_ops, \"usersitenumber\" int4_ops, \"usernumber\" int4_ops)", 
+	     "(\"contestnumber\" int4_ops, \"usersitenumber\" int4_ops, \"usernumber\" int4_ops)",
 	     "DBCreateUserTable(create user_index)");
 	$r = DBExec($c, "CREATE UNIQUE INDEX \"user_index2\" ON \"usertable\" USING btree ".
 	     "(\"contestnumber\" int4_ops, \"usersitenumber\" int4_ops, \"username\" varchar_ops)",
@@ -204,24 +200,6 @@ function DBFakeContest() {
 		"values (0, 1, 1, 'system', 'Systems', NULL, 'system', 't', ".
            "'t', '$pass', NULL, NULL, '', NULL, NULL)", "DBFakeContest(insert system user)");
 	DBExec($c, "commit work");
-}
-function DBAllUserNames($contest,$site=-1) {
-	$sql = "select * from usertable where contestnumber=$contest ";
-	if($site > 0) $sql .= "and usersitenumber=$site ";
-	$c = DBConnect();
-	$r = DBExec ($c, $sql, "DBAllUserNames(get users)");
-	$n = DBnlines($r);
-	if ($n == 0) {
-		LOGError("Unable to find users in the database. SQL=(" . $sql . ")");
-		MSGError("Unable to find users in the database!");
-	}
-
-	$a = array();
-	for ($i=0;$i<$n;$i++) {
-	  $tmp = DBRow($r,$i);
-	  $a[$tmp['usersitenumber'] . '-' . $tmp['usernumber']] = $tmp['username'];
-	}
-	return $a;
 }
 function DBAllUserInfo($contest,$site=-1) {
 	$sql = "select * from usertable where contestnumber=$contest ";
@@ -286,24 +264,16 @@ function DBUserInfo($contest, $site, $user, $c=null,$hashpass=true) {
 	/* 	if(isset($inst[1])) */
 	/* 	   $a['usershortname'] = trim($inst[1]); */
 	/* } */
-	return cleanuserdesc($a);
-}
-function cleanuserdesc($a) {
 	$inst = explode(']',$a['userdesc']);
-	$a['userflag']='';
-	$a['usershortinstitution']='';
-	$a['usersitename']='';
 	if(isset($inst[1])) {
 		$inst2 = explode('[',$inst[0]);
 		if(isset($inst2[1]))
-			$a['usershortinstitution'] = trim($inst2[1]);
+			$a['usershortinstitution'] = trim($inst2[0]);
 		if(isset($inst[2])) {
 			$a['userdesc']=trim($inst[2]);
 			$inst = explode('[',$inst[1]);
 			if(isset($inst[1])) {
-			  $inst2 = explode(',',trim($inst[1]));
-			  $a['userflag'] = strtolower($inst2[0]);
-			  if(isset($inst2[1])) $a['usersitename']=strtoupper(trim($inst2[1]));
+				$a['userinstitution'] = trim($inst[1]);
 			}
 		} else {
 			$a['userdesc']=trim($inst[1]);
@@ -319,26 +289,14 @@ function DBDeleteUser($contest, $site, $user) {
 	DBExec($c, "begin work");
 	DBExec($c, "lock table usertable");
 	$sql = "select * from usertable where usernumber=$user and usersitenumber=$site and " .
-               "contestnumber=$contest for update";
-	$a = DBGetRow ($sql, 0, $c);
+               "contestnumber=$contest";
+	$a = DBGetRow ($sql, 0);
 	if ($a != null) {
-		$sql = "update usertable set userenabled='f', userlastlogin=NULL, usersessionextra='', usersession='', updatetime=".time(). " where usernumber=$user and usersitenumber=$site and " .
+		$sql = "delete from usertable where usernumber=$user and usersitenumber=$site and " .
         	       "contestnumber=$contest";
-		//		$sql = "delete from usertable where usernumber=$user and usersitenumber=$site and " .
-		//     "contestnumber=$contest";
 		DBExec ($c, $sql);
-		$r = DBExec($c,"select runnumber as number, runsitenumber as site from runtable where contestnumber=$contest and usernumber=$user and runsitenumber=$site for update");
-		$n = DBnlines($r);
-		for ($i=0;$i<$n;$i++) {
-		  $a = DBRow($r,$i);
-		  if(DBRunDelete($a["number"],$a["site"],$contest,$_SESSION["usertable"]["usernumber"],$_SESSION["usertable"]["usersitenumber"],$c) === false) {
-		    DBExec($c, "rollback work");
-		    LOGLevel("User $user (site=$site,contest=$contest) could not be removed (run delete error).", 1);
-		    return false;
-		  }
-		}
 		DBExec($c, "commit work");
-		LOGLevel("User $user (site=$site,contest=$contest) marked as inactive.", 1);
+		LOGLevel("User $user (site=$site,contest=$contest) removed.", 1);
 		return true;
 	} else {
 		DBExec($c, "rollback work");
@@ -506,11 +464,11 @@ function DBSiteDeleteAllClars ($contest, $site, $user, $usersite, $c=null) {
 	DBExec($c, "lock table sitetable");
 	DBExec($c, "lock table clartable");
 	DBExec($c, "select * from sitetable where contestnumber=$contest and sitenumber=$site for update");
-	$r = DBExec($c, "select * from clartable as c where c.contestnumber=$contest " .
-				" and (c.clarsitenumber=$site or $site < 0) for update");
-	DBExec($c, "delete from clartable where contestnumber=$contest and (clarsitenumber=$site or $site < 0)");
+	$r = DBExec($c, "select * from clartable as c where c.contestnumber=$contest and " .
+				"c.clarsitenumber=$site for update");
+	DBExec($c, "delete from clartable where contestnumber=$contest and clarsitenumber=$site");
 	DBExec($c, "update sitetable set sitenextclar=0, updatetime=".time()." " .
-		   "where contestnumber=$contest and (sitenumber=$site or $site < 0)");
+		   "where contestnumber=$contest and sitenumber=$site");
 	if($cw) {
         DBExec($c, "commit work");
 		LOGLevel("All Clarifications deleted (site=$site, contest=$contest, user=$user(site=$usersite)).", 3);
@@ -528,10 +486,10 @@ function DBSiteDeleteAllTasks ($contest, $site, $user, $usersite,$c=null) {
 	DBExec($c, "lock table tasktable");
 	DBExec($c, "select * from sitetable where contestnumber=$contest and sitenumber=$site for update");
 	$r = DBExec($c, "select * from tasktable as t where t.contestnumber=$contest and " .
-				"(t.sitenumber=$site or $site < 0) for update");
-	DBExec($c, "delete from tasktable where contestnumber=$contest and (sitenumber=$site or $site < 0)");
+				"t.sitenumber=$site for update");
+	DBExec($c, "delete from tasktable where contestnumber=$contest and sitenumber=$site");
 	DBExec($c, "update sitetable set sitenexttask=0, updatetime=".time()." " .
-		   "where contestnumber=$contest and (sitenumber=$site or $site < 0)");
+		   "where contestnumber=$contest and sitenumber=$site");
 	if($cw) {
 		DBExec($c, "commit work");
 		LOGLevel("All Tasks deleted (site=$site, contest=$contest, user=$user(site=$usersite)).", 3);
@@ -546,13 +504,13 @@ function DBSiteDeleteAllBkps ($contest, $site, $user, $usersite,$c=null) {
         DBExec($c, "begin work");
 	}
 	DBExec($c, "lock table bkptable");
-	$r = DBExec($c, "select bkpdata from bkptable where contestnumber=$contest and (sitenumber=$site or $site < 0) and bkpstatus='active'");
+	$r = DBExec($c, "select bkpdata from bkptable where contestnumber=$contest and sitenumber=$site and bkpstatus='active'");
 	$n = DBnlines($r);
 	for ($i=0;$i<$n;$i++) {
 		$a = DBRow($r,$i);
 		DB_lo_unlink($c,$a["bkpdata"]);
 	}
-	DBExec($c, "delete from bkptable where contestnumber=$contest and (sitenumber=$site or $site < 0)");
+	DBExec($c, "delete from bkptable where contestnumber=$contest and sitenumber=$site");
 	if($cw) {
 		DBExec($c, "commit work");
 		LOGLevel("All Bkps deleted (site=$site, contest=$contest, user=$user(site=$usersite)).", 3);
@@ -568,50 +526,19 @@ function DBSiteDeleteAllRuns ($contest, $site, $user, $usersite,$c=null) {
 	}
 	DBExec($c, "lock table sitetable");
 	DBExec($c, "lock table runtable");
-	DBExec($c, "select * from sitetable where contestnumber=$contest and (sitenumber=$site or $site < 0) for update");
+	DBExec($c, "select * from sitetable where contestnumber=$contest and sitenumber=$site for update");
 	$sql = "select * from runtable as r where r.contestnumber=$contest and " .
 		"r.runsitenumber=$site";
 	$r = DBExec ($c, $sql . " for update");
-	DBExec($c, "delete from runtable where contestnumber=$contest and (runsitenumber=$site or $site < 0)");
+	DBExec($c, "delete from runtable where contestnumber=$contest and runsitenumber=$site");
 	DBExec($c, "update sitetable set sitenextrun=0, updatetime=".time()." " .
-		   "where contestnumber=$contest and (sitenumber=$site or $site < 0)");
+		   "where contestnumber=$contest and sitenumber=$site");
 	if($cw) {
 		DBExec($c, "commit work");
 		LOGLevel("All Runs deleted (site=$site, contest=$contest, user=$user(site=$usersite)).", 3);
 	}
 	return true;
 }
-function DBUpdateSiteTime($contest,$param,$dodelete=false,$c=null) {
-  $ac=array('sitenumber','sitestartdate','siteenddate','updatetime');
-  $type['sitenumber']=1;
-  $type['updatetime']=1;
-  $type['sitestartdate']=1;
-  $type['siteenddate']=1;
-  foreach($ac as $key) {
-    if(!isset($param[$key])) {
-      LOGError("DBUpdateSiteTime param error: $key is not set");
-      return false;
-    }
-    $$key = myhtmlspecialchars($param[$key]);
-    if(isset($type[$key]) && !is_numeric($param[$key])) {
-      LOGError("DBUpdateSiteTime param error: $key is not numeric");
-      return false;
-    }
-  }
-  if($c==null) {
-    $c = DBConnect();
-    DBExec($c, "begin work", "DBUpdateSiteTime(begin)");
-    $docommit=true;
-  }
-  if($dodelete)
-    DBExec($c, "delete from sitetimetable where contestnumber=$contest and sitenumber=$sitenumber", "DBUpdateSiteTime(delete)");
-  DBExec($c, "insert into sitetimetable (contestnumber, sitenumber, sitestartdate, siteenddate, updatetime) ".
-	 "values ($contest,$sitenumber,$sitestartdate,$siteenddate,$updatetime)", "DBRenewSiteTime(insert)"); 
-  if($docommit) 	
-    DBExec($c, "commit work", "DBUpdateSiteTime(commit-noupdate)");
-  return true;
-}
-	
 function DBUpdateSite ($param,$c=null) {
 	$ac=array('contestnumber','sitenumber','sitename','sitepermitlogins','sitescorelevel');
 	$ac1=array('updatetime','siteautoend','siteglobalscore','siteip','siteactive','siteduration','sitelastmileanswer','sitelastmilescore',
@@ -635,7 +562,7 @@ function DBUpdateSite ($param,$c=null) {
 			MSGError("DBUpdateSite param error: $key is not set");
 			return false;
 		}
-		$$key = myhtmlspecialchars($param[$key]);
+		$$key = sanitizeText($param[$key]);
 		if(isset($type[$key]) && !is_numeric($param[$key])) {
 			MSGError("DBUpdateSite param error: $key is not numeric");
 			return false;
@@ -660,7 +587,7 @@ function DBUpdateSite ($param,$c=null) {
 	$siteactive='f';
 	foreach($ac1 as $key) {
 		if(isset($param[$key])) {
-			$$key = myhtmlspecialchars($param[$key]);
+			$$key = sanitizeText($param[$key]);
 			if(isset($type[$key]) && !is_numeric($param[$key])) {
 				MSGError("DBUpdateSite param error: $key is not numeric");
 				return false;
@@ -701,12 +628,12 @@ function DBUpdateSite ($param,$c=null) {
 	$ret=1;
 	if($updatetime > $a['updatetime']) {
 		$ret=2;
-		//		if($sitenextrun==0)
-		//	DBSiteDeleteAllRuns($contestnumber,$sitenumber,$_SESSION["usertable"]["usernumber"],$_SESSION["usertable"]["usersitenumber"],$c);
-		//if($sitenextclar==0)
-		//	DBSiteDeleteAllClars($contestnumber,$sitenumber,$_SESSION["usertable"]["usernumber"],$_SESSION["usertable"]["usersitenumber"],$c);
-		//if($sitenexttask==0)
-		//	DBSiteDeleteAllTasks($contestnumber,$sitenumber,$_SESSION["usertable"]["usernumber"],$_SESSION["usertable"]["usersitenumber"],$c);
+		if($sitenextrun==0)
+			DBSiteDeleteAllRuns($contestnumber,$sitenumber,$_SESSION["usertable"]["usernumber"],$_SESSION["usertable"]["usersitenumber"],$c);
+		if($sitenextclar==0)
+			DBSiteDeleteAllClars($contestnumber,$sitenumber,$_SESSION["usertable"]["usernumber"],$_SESSION["usertable"]["usersitenumber"],$c);
+		if($sitenexttask==0)
+			DBSiteDeleteAllTasks($contestnumber,$sitenumber,$_SESSION["usertable"]["usernumber"],$_SESSION["usertable"]["usersitenumber"],$c);
 
 		$sql = "update sitetable set sitename='$sitename', ";
 		if ($sitepermitlogins!="") $sql .= "sitepermitlogins='$sitepermitlogins', ";
@@ -748,28 +675,18 @@ function DBUpdateSite ($param,$c=null) {
 		//. "and updatetime < $updatetime";
 		DBExec($c,$sql, "DBUpdateSite(update site)");
 		if($docommit) {
-			DBExec($c, "commit work", "DBUpdateSite(commit-update)");	
-			LOGLevel("User " . $_SESSION["usertable"]["username"]."/". $_SESSION["usertable"]["usersitenumber"] . 
+			DBExec($c, "commit work", "DBUpdateSite(commit-update)");
+			LOGLevel("User " . $_SESSION["usertable"]["username"]."/". $_SESSION["usertable"]["usersitenumber"] .
 					 " changed the site $sitenumber (contest=$contestnumber) settings.",2);
 		}
 	} else {
-		if($docommit) 	
+		if($docommit)
 			DBExec($c, "commit work", "DBUpdateSite(commit-noupdate)");
 	}
 	return $ret;
 }
 function DBUpdateContest ($param, $c=null) {
-  if(isset($param['contestnumber']) && !isset($param['number'])) $param['number']=$param['contestnumber'];
-  if(isset($param['contestname']) && !isset($param['name'])) $param['name']=$param['contestname'];
-  if(isset($param['conteststartdate']) && !isset($param['startdate'])) $param['startdate']=$param['conteststartdate'];
-  if(isset($param['contestduration']) && !isset($param['duration'])) $param['duration']=$param['contestduration'];
-  if(isset($param['contestlastmileanswer']) && !isset($param['lastmileanswer'])) $param['lastmileanswer']=$param['contestlastmileanswer'];
-  if(isset($param['contestlastmilescore']) && !isset($param['lastmilescore'])) $param['lastmilescore']=$param['contestlastmilescore'];
-  if(isset($param['contestpenalty']) && !isset($param['penalty'])) $param['penalty']=$param['contestpenalty'];
-  if(isset($param['contestmaxfilesize']) && !isset($param['maxfilesize'])) $param['maxfilesize']=$param['contestmaxfilesize'];
-  //  if(isset($param['contestactive']) && !isset($param['active'])) $param['active']=$param['contestactive'];
-  if(isset($param['contestmainsite']) && !isset($param['mainsite'])) $param['mainsite']=$param['contestmainsite'];
-  if(isset($param['contestkeys']) && !isset($param['keys'])) $param['keys']=$param['contestkeys'];
+	if(isset($param['contestnumber']) && !isset($param['number'])) $param['number']=$param['contestnumber'];
 
 	$ac=array('number');
 	$ac1=array('updatetime','atualizasites','scorelevel','mainsite','localsite','mainsiteurl','keys','unlockkey','name',
@@ -791,7 +708,7 @@ function DBUpdateContest ($param, $c=null) {
 			MSGError("DBUpdateContest param error: $key is not set");
 			return false;
 		}
-		$$key = myhtmlspecialchars($param[$key]);
+		$$key = sanitizeText($param[$key]);
 		if(isset($type[$key]) && !is_numeric($param[$key])) {
 			MSGError("DBUpdateContest param error: $key is not numeric");
 			return false;
@@ -814,7 +731,7 @@ function DBUpdateContest ($param, $c=null) {
 	$updatetime=-1;
 	foreach($ac1 as $key) {
 		if(isset($param[$key])) {
-			$$key = myhtmlspecialchars($param[$key]);
+			$$key = sanitizeText($param[$key]);
 			if(isset($type[$key]) && !is_numeric($param[$key])) {
 				MSGError("DBUpdateContest param error: $key is not numeric");
 				return false;
@@ -908,7 +825,7 @@ function DBUpdateContest ($param, $c=null) {
 					$param['sitelastmilescore']=$lastmilescore;
 				unset($param['updatetime']);
 				DBUpdateSite ($param,$c);
-				
+
 				if($startdate > 0) {
 					$p=array();
 					$p['contest']=$number;
@@ -982,7 +899,7 @@ function DBRenewSiteTime($param, $c=null) {
 	}
 	DBExec($c,"lock table sitetimetable","DBRenewSiteTime(lock)");
 
-	$a = DBGetRow ("select max(updatetime) as maxtime from sitetimetable where contestnumber=". $param[0]['contest']. 
+	$a = DBGetRow ("select max(updatetime) as maxtime from sitetimetable where contestnumber=". $param[0]['contest'].
 				   " and sitenumber=". $param[0]['site'], 0, $c);
 	$ret = 1;
 	if ($a == null || $a['maxtime'] < $maxtime) {
@@ -991,7 +908,7 @@ function DBRenewSiteTime($param, $c=null) {
 		for($i=0; isset($param[$i]); $i++) {
 			DBExec($c, "insert into sitetimetable (contestnumber, sitenumber, sitestartdate, siteenddate, updatetime) ".
 				   "values (". $param[0]['contest'].", ". $param[0]['site'].", ".$param[$i]['start'].", ".
-				   $param[$i]['enddate'].", ".$param[$i]['updatetime'].")", "DBRenewSiteTime(insert)"); 
+				   $param[$i]['enddate'].", ".$param[$i]['updatetime'].")", "DBRenewSiteTime(insert)");
 		}
 		$ret = 2;
 	}
@@ -1009,7 +926,7 @@ function DBNewContest ($param=array(), $c=null) {
 				   "DBNewContest(max(contest))");
 	if ($a == null) $n=1;
 	else $n = $a["contest"]+1;
-	
+
 	$ac=array('name','startdate','duration','lastmileanswer','lastmilescore','penalty','updatetime','localsite','mainsite','mainsiteurl','keys','unlockkey');	 //'active'
 	$type['startdate']=1;
 	$type['duration']=1;
@@ -1024,7 +941,7 @@ function DBNewContest ($param=array(), $c=null) {
 	$unlockkey='';
 	foreach($ac as $key) {
 		if(isset($param[$key]) && (!isset($type[$key]) || is_numeric($param[$key])))
-			$$key = myhtmlspecialchars($param[$key]);
+			$$key = sanitizeText($param[$key]);
 		else
 			$$key = "";
 	}
@@ -1036,7 +953,7 @@ function DBNewContest ($param=array(), $c=null) {
 	if($lastmileanswer=="") $lastmileanswer=285*60;
 	if($lastmilescore=="") $lastmilescore=240*60;
 	if($penalty=="") $penalty=20*60;
-	//if($active=="") 
+	//if($active=="")
 	$active="f";
 	if($updatetime=="") $updatetime=time();
 
@@ -1059,27 +976,31 @@ function DBNewContest ($param=array(), $c=null) {
 	return $n;
 }
 function insertlanguages($n,$c=null) {
-	$ok=false;
+$ok=false;
 	$param=null;
 	$param['number']=1;
 	$param['name']='C';
 	$param['extension']='c';
 	DBNewLanguage($n, $param, $c);
-	$param['number']=2;
+    $param['number']=2;
+    $param['name']='C++';
+    $param['extension']='cpp';
+    DBNewLanguage($n, $param, $c);
+    $param['number']=3;
+    $param['name']='Java';
+    $param['extension']='java';
+    DBNewLanguage($n, $param, $c);
+    $param['number']=4;
+    $param['name']='Python3';
+    $param['extension']='py3';
+    DBNewLanguage($n, $param, $c);
+    $param['number']=5;
+    $param['name']='Python2';
+    $param['extension']='py2';
+    DBNewLanguage($n, $param, $c);
+	$param['number']=6;
 	$param['name']='C++11';
 	$param['extension']='cc';
-	DBNewLanguage($n, $param, $c);
-	$param['number']=3;
-	$param['name']='Java';
-	$param['extension']='java';
-	DBNewLanguage($n, $param, $c);
-	$param['number']=4;
-	$param['name']='Python2';
-	$param['extension']='py2';
-	DBNewLanguage($n, $param, $c);
-	$param['number']=5;
-	$param['name']='Python3';
-	$param['extension']='py3';
 	DBNewLanguage($n, $param, $c);
 }
 function insertanswers($n,$c) {
@@ -1098,9 +1019,7 @@ function insertanswers($n,$c) {
 	DBExec($c, "insert into answertable (contestnumber, answernumber, runanswer, yes, fake) values ".
 			"($n, 6, 'NO - Wrong answer', 'f', 'f')", "DBNewContest(insert WA answer)");
 	DBExec($c, "insert into answertable (contestnumber, answernumber, runanswer, yes, fake) values ".
-			"($n, 7, 'NO - Contact staff', 'f', 'f')", "DBNewContest(insert CS answer)");
-	DBExec($c, "insert into answertable (contestnumber, answernumber, runanswer, yes, fake) values ".
-			"($n, 8, 'NO - Name mismatch', 'f', 'f')", "DBNewContest(insert MI answer)");
+			"($n, 7, 'NO - If possible, contact staff', 'f', 'f')", "DBNewContest(insert CS answer)");
 }
 function DBNewSite ($contest, $c=null, $param=array()) {
 	$cw = false;
@@ -1113,8 +1032,6 @@ function DBNewSite ($contest, $c=null, $param=array()) {
 	if($ct==null) return false;
 
 	if(isset($param['sitenumber']) && !isset($param['number'])) $param['number']=$param['sitenumber'];
-	if(isset($param['siteduration']) && !isset($param['duration'])) $param['duration']=$param['siteduration'];
-
 	$ac=array('number','siteip','sitename','sitescorelevel','updatetime','startdate','duration');
 	$type=array();
 	$type['startdate']=1;
@@ -1124,7 +1041,7 @@ function DBNewSite ($contest, $c=null, $param=array()) {
 	$type['updatetime']=1;
 	foreach($ac as $key) {
 		if(isset($param[$key]) && (!isset($type[$key]) || is_numeric($param[$key])))
-			$$key = myhtmlspecialchars($param[$key]);
+			$$key = sanitizeText($param[$key]);
 		else
 			$$key = "";
 	}
@@ -1136,10 +1053,7 @@ function DBNewSite ($contest, $c=null, $param=array()) {
 		$number=$n;
 	} else {
 		$a = DBGetRow ("select * from sitetable where contestnumber=$contest and sitenumber=$number", 0, $c);
-		if($a != null) {
-		  if($cw)	DBExec($c, "commit work");
-		  return false;
-		}
+		if($a != null) return 1;
 	}
 	if($duration=='') $duration = $ct["contestduration"];
 	if($startdate=='') $startdate=$ct["conteststartdate"];
@@ -1148,16 +1062,13 @@ function DBNewSite ($contest, $c=null, $param=array()) {
 	if($sitescorelevel=="") $sitescorelevel=3;
 	$t=time();
 	if($updatetime=="") $updatetime=$t;
-	if(!DBExecNonStop($c, "insert into sitetable (contestnumber, sitenumber, siteip, sitename, siteactive, sitepermitlogins, ".
-			  "sitelastmileanswer, sitelastmilescore, siteduration, siteautoend, sitejudging, sitetasking, ".
-			  "siteglobalscore, sitescorelevel, ".
-			  "sitenextuser, sitenextclar, sitenextrun, sitenexttask, sitemaxtask, updatetime) values ".
-			  "($contest, $number, '$siteip', '$sitename', 't', 't', ".
-			  $ct["contestlastmileanswer"].",".$ct["contestlastmilescore"].
-			  ", $duration, 't', '$number', '$number', '$number', $sitescorelevel, 0, 0, 0, 0, 10, $updatetime)")) {
-	  if($cw)	DBExec($c, "commit work");
-	  return false;
-	}
+	DBExec($c, "insert into sitetable (contestnumber, sitenumber, siteip, sitename, siteactive, sitepermitlogins, ".
+			"sitelastmileanswer, sitelastmilescore, siteduration, siteautoend, sitejudging, sitetasking, ".
+			"siteglobalscore, sitescorelevel, ".
+			"sitenextuser, sitenextclar, sitenextrun, sitenexttask, sitemaxtask, updatetime) values ".
+			"($contest, $number, '$siteip', '$sitename', 't', 't', ".
+                        $ct["contestlastmileanswer"].",".$ct["contestlastmilescore"].
+			", $duration, 't', '$number', '$number', '$number', $sitescorelevel, 0, 0, 0, 0, 10, $updatetime)");
 
 	$cf=globalconf();
 	$admpass = myhash($cf["basepass"]);
@@ -1174,9 +1085,9 @@ function DBNewSite ($contest, $c=null, $param=array()) {
 	$param['start']=$startdate;
 	DBRenewSiteTime($param, $c);
 	if($cw)	DBExec($c, "commit work");
-	LOGLevel("User " . $_SESSION["usertable"]["username"]."/". $_SESSION["usertable"]["usersitenumber"] . 
+	LOGLevel("User " . $_SESSION["usertable"]["username"]."/". $_SESSION["usertable"]["usersitenumber"] .
 			 " created site $number on contest $contest.",2);
-	return $number;
+	return 2;
 }
 
 function DBUserUpdate($contest, $site, $user, $username, $userfull, $userdesc, $passo, $passn) {
@@ -1187,7 +1098,7 @@ function DBUserUpdate($contest, $site, $user, $username, $userfull, $userdesc, $
 				 "tried to change settings, but password was incorrect.",2);
 		MSGError ("Incorrect password.");
 	}
-	else { 
+	else {
 		if(!$a['changepassword']) {
 			MSGError('Password change is DISABLED'); return;
 		}
@@ -1195,12 +1106,11 @@ function DBUserUpdate($contest, $site, $user, $username, $userfull, $userdesc, $
 		else $temp = $a["userpassword"];
 		$lentmp = strlen($temp);
 		$temp = bighexsub($passn, $temp);
-		if($lentmp > strlen($temp)) {
-		  $newpass = '0' . $temp;
-		  while(strlen($newpass) < $lentmp) $newpass = '0' . $newpass;
-		} else {
-		  $newpass = substr($temp, strlen($temp)-$lentmp);
-		}
+		if($lentmp > strlen($temp))
+			$newpass = '0' . $temp;
+		else
+			$newpass = substr($temp, strlen($temp)-$lentmp);
+
 		$c = DBConnect();
 		DBExec($c, "begin work");
 		DBExec($c, "lock table usertable");
@@ -1229,19 +1139,9 @@ function DBUserUpdate($contest, $site, $user, $username, $userfull, $userdesc, $
 function DBNewUser($param, $c=null) {
 	if(isset($param['contestnumber']) && !isset($param['contest'])) $param['contest']=$param['contestnumber'];
 	if(isset($param['sitenumber']) && !isset($param['site'])) $param['site']=$param['sitenumber'];
-	if(isset($param['usersitenumber']) && !isset($param['site'])) $param['site']=$param['usersitenumber'];
 	if(isset($param['usernumber']) && !isset($param['user'])) $param['user']=$param['usernumber'];
 	if(isset($param['number']) && !isset($param['user'])) $param['user']=$param['number'];
 
-	if(isset($param['userpassword']) && !isset($param['pass'])) $param['pass']=$param['userpassword'];
-	if(isset($param['userenabled']) && !isset($param['enabled'])) $param['enabled']=$param['userenabled'];
-	if(isset($param['usermultilogin']) && !isset($param['multilogin'])) $param['multilogin']=$param['usermultilogin'];
-	if(isset($param['userpermitip']) && !isset($param['permitip'])) $param['permitip']=$param['userpermitip'];
-	if(isset($param['userfullname']) && !isset($param['userfull'])) $param['userfull']=$param['userfullname'];
-	if(isset($param['usertype']) && !isset($param['type'])) $param['type']=$param['usertype'];
-	if(isset($param['userpermitip']) && !isset($param['permitip'])) $param['permitip']=$param['userpermitip'];
-	if(isset($param['userpermitip']) && !isset($param['permitip'])) $param['permitip']=$param['userpermitip'];
-	
 	$ac=array('contest','site','user');
 	$ac1=array('updatetime','username','usericpcid','userfull','userdesc','type','enabled','multilogin','pass','permitip','changepass',
 			   'userip','userlastlogin','userlastlogout','usersession','usersessionextra');
@@ -1259,7 +1159,7 @@ function DBNewUser($param, $c=null) {
 			MSGError("DBNewUser param error: $key is not numeric");
 			return false;
 		}
-		$$key = myhtmlspecialchars($param[$key]);
+		$$key = sanitizeText($param[$key]);
 	}
 	$username= "team" . $user;
 	$updatetime=-1;
@@ -1279,7 +1179,7 @@ function DBNewUser($param, $c=null) {
 	$userlastlogout=null;
 	foreach($ac1 as $key) {
 		if(isset($param[$key])) {
-			$$key = myhtmlspecialchars($param[$key]);
+			$$key = sanitizeText($param[$key]);
 			if(isset($typei[$key]) && !is_numeric($param[$key])) {
 				MSGError("DBNewUser param error: $key is not numeric");
 				return false;
@@ -1290,8 +1190,8 @@ function DBNewUser($param, $c=null) {
 	if($updatetime <= 0)
 		$updatetime=$t;
 
-	if ($type != "chief" && $type != "judge" && $type != "admin" && 
-	    $type != "score" && $type != "staff" && $type != "site") 
+	if ($type != "chief" && $type != "judge" && $type != "admin" &&
+	    $type != "score" && $type != "staff" && $type != "site")
 		$type = "team";
 	if ($type == "admin") $changepass = "t";
 	if ($enabled != "f") $enabled = "t";
@@ -1308,12 +1208,11 @@ function DBNewUser($param, $c=null) {
 	$r = DBExec($c, "select * from sitetable where sitenumber=$site and contestnumber=$contest", "DBNewUser(get site)");
 	$n = DBnlines ($r);
 	if($n == 0) {
-	  if($cw)
-	    DBExec ($c, "rollback work","DBNewUser(no-site)");
-	  MSGError("DBNewUser param error: site $site does not exist");
-	  return false;
+		DBExec ($c, "rollback work","DBNewUser(no-site)");
+		MSGError("DBNewUser param error: site $site does not exist");
+		return false;
 	}
-	if($pass != myhash("") && $type != "admin" && $changepass != "t" && substr($pass,0,1) != "!") $pass='!'.$pass;
+	if($pass != myhash("") && $type != "admin" && $changepass != "t") $pass='!'.$pass;
 	$r = DBExec($c, "select * from usertable where username='$username' and usernumber!=$user and ".
 				"usersitenumber=$site and contestnumber=$contest", "DBNewUser(get user)");
 	$n = DBnlines ($r);
@@ -1325,12 +1224,11 @@ function DBNewUser($param, $c=null) {
 		if ($a == null) {
 			$ret=2;
 		  $sql = "select * from sitetable where sitenumber=$site and contestnumber=$contest";
-		  $aa = DBGetRow ($sql, 0, $c);
+		  $aa = DBGetRow ($sql, 0);
 		   if($aa==null) {
-		     if($cw)
 		   	DBExec ($c, "rollback work");
-		     MSGError("Site $site does not exist");
-		     return false;
+			MSGError("Site $site does not exist");
+			return false;
 		   }
 			$sql = "insert into usertable (contestnumber, usersitenumber, usernumber, username, usericpcid, userfullname, " .
 				"userdesc, usertype, userenabled, usermultilogin, userpassword, userpermitip) values " .
@@ -1362,13 +1260,11 @@ function DBNewUser($param, $c=null) {
 			}
 		}
 	} else {
-	  if($cw)
-	    DBExec ($c, "rollback work");
-	  LOGLevel ("Update problem for user $user (site=$site,contest=$contest) (maybe username already in use).",1);
-	  MSGError ("Update problem for user $user, site $site (maybe username already in use).");
-	  return false;
+		DBExec ($c, "rollback work");
+		LOGLevel ("Update problem for user $user (site=$site,contest=$contest) (maybe username already in use).",1);
+		MSGError ("Update problem for user $user, site $site (maybe username already in use).");
+		return false;
 	}
-	if($cw) DBExec($c, "commit work");
 	return $ret;
 }
 
@@ -1380,8 +1276,8 @@ function siteclock() {
 	if(substr($_SESSION["usertable"]["username"],0,3) == 'XXX') {
 		$s["currenttime"]=$s["currenttime"] - 60*10; // 10 minutos
 	}
-	
-	if ($s["siteactive"]!="t") 
+
+	if ($s["siteactive"]!="t")
 		return array("site is not active",-1000000000);
 	if (!$s["siterunning"])
 		return array("contest not running",-1000000000);

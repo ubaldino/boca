@@ -66,8 +66,7 @@ function decryptData($crypttext,$key,$txt='') {
 	if($test1 != $test2) {
 		if($txt=='')
 			MSGError("Decryption error -- contact an admin now (" . getFunctionName() .")");
-		else
-		    LogError("Decryption error (" . getFunctionName() .",$txt)");
+//		LogError("Decryption error -- contact an admin, possibly password wrong (" . getFunctionName() .",$txt)");
 		return "";
 	}
 	if($iscompressed) return unzipstr($decrypttext);

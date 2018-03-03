@@ -15,7 +15,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////
-// Last modified 29/aug/2017 by cassio@ime.usp.br
+// Last modified 05/aug/2012 by cassio@ime.usp.br
 
 function DBRunReport($contest,$site) {
 	$c = DBConnect();
@@ -44,14 +44,11 @@ function DBRunReport($contest,$site) {
 	$n = DBnlines($r);
 	for ($i=0;$i<$n;$i++) {
 		$a = DBRow($r,$i);
-		//cassiopc: staff users should see only same site, so checking of teamYYYY and staffXXXX have YYYY=XXXX
-		if($_SESSION["usertable"]["usertype"] != "admin" && substr($a['name'],4,4) != substr($_SESSION["usertable"]["username"],5,4)) continue;
 		$xusername[$a['un']] = $a['name'];
 		$xuserfull[$a['name']] = $a['fullname'];
 	}
 	ksort($xusername);
-	$xcolor = array();
-	
+
 	$pr = DBGetProblems($contest);
 	for($i=0; $i<count($pr); $i++) {
 	  $xproblem[$pr[$i]['problem']]=0;
@@ -64,18 +61,12 @@ function DBRunReport($contest,$site) {
 	$xanswer = array();
 	$xtimestamp = array();
 	$xtimestampyes = array();
-	$xpa = array();
-	$xpl = array();
-	$xla = array();
-	$xup = array();
-	
+
 	$r = DBExec($c, $sql, "DBRunReport(get runs)");
 	$n = DBnlines($r);
 
 	for ($i=0;$i<$n;$i++) {
 		$a = DBRow($r,$i);
-		//cassiopc: staff users should see only same site, so checking of teamYYYY and staffXXXX have YYYY=XXXX
-		if($_SESSION["usertable"]["usertype"] != "admin" && substr($a['user'],4,4) != substr($_SESSION["usertable"]["username"],5,4)) continue;
 		$xdados[$i] = $a;
 		// # of runs by team
 		if(isset($xuser[$a['user']]))

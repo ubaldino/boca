@@ -81,10 +81,7 @@ if (isset($_GET["done"]) && is_numeric($_GET["done"]) && isset($_GET["site"]) &&
 if (($s=DBSiteInfo($_SESSION["usertable"]["contestnumber"],$_SESSION["usertable"]["usersitenumber"])) == null)
         ForceLoad("../index.php");
 
-if (trim($s["sitetasking"])!="") $s["sitetasking"].=",".$_SESSION["usertable"]["usersitenumber"];
-else $s["sitetasking"]=$_SESSION["usertable"]["usersitenumber"];
-
-$task = DBAllTasksInSites($_SESSION["usertable"]["contestnumber"], $s["sitetasking"], $order, true);
+$task = DBAllTasksInSites($_SESSION["usertable"]["contestnumber"], $s["sitetasking"], $order);
 for ($i=0; $i<count($task); $i++) {
   $st = $task[$i]["status"];
 
@@ -104,7 +101,8 @@ for ($i=0; $i<count($task); $i++) {
   }
   echo "</td>\n";
   if ($task[$i]["oid"] != null) {
-    $msg = "///// " . $task[$i]["username"]." -- ". substr($task[$i]["fullname"],0,60) ." -- ".$task[$i]["username"]." ";
+	  $msg = "///// " . $task[$i]["username"]." ".$task[$i]["username"]." ".$task[$i]["username"]." ".
+		  $task[$i]["username"]." ".$task[$i]["username"]." ".$task[$i]["username"];
 	  echo "  <td nowrap><a href=\"../filedownload.php?" . filedownload($task[$i]["oid"], $task[$i]["filename"]) . "\">" . $task[$i]["filename"] . "</a>";
 	  echo " <a href=\"#\" class=menu style=\"font-weight:bold\" onClick=\"window.open('../filewindow.php?".
 		  filedownload($task[$i]["oid"], $task[$i]["filename"], $msg) . "', 'Viewx$i','width=680,height=600,scrollbars=yes,".

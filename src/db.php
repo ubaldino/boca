@@ -33,28 +33,28 @@ function DB_lo_open($conn, $file, $mode) {
 	else
 		return pg_lo_open ($conn, $file, $mode);
 }
-function DB_lo_read_tobrowser($contest,$id,$c=null) {
-  $str = DB_lo_read($contest,$id,-1,$c);
-  echo $str;
-  return true;
+function DB_lo_read_tobrowser($contest,$id) {
+	$str = DB_lo_read($contest,$id);
+	echo $str;
+	return true;
 }
 
-function DB_lo_read($contest,$id,$s=-1,$c=null) {
+function DB_lo_read($contest,$id,$s=-1) {
 	if (strcmp(phpversion(),'4.2.0')<0) {
 		if($s<0) {
 			$str='';
-			while (($buf = pg_loread ($id, 1000000)) != false) $str .= $buf;
+			while (($buf = pg_loread ($id, 100000)) != false) $str .= $buf;
 		} else
 			$str = pg_loread ($id, $s);
 	}
 	else {
 		if($s<0) {
 			$str='';
-			while (($buf = pg_lo_read ($id, 1000000)) != false) $str .= $buf;
+			while (($buf = pg_lo_read ($id, 100000)) != false) $str .= $buf;
 		} else
 			$str = pg_lo_read ($id, $s);
 	}
-	if(($str2 = DB_unlock($contest,$str,$c))===false) return $str;
+	if(($str2 = DB_unlock($contest,$str))===false) return $str;
 	return $str2;
 }
 function DB_unlock($contest,$str,$c=null) {
@@ -81,14 +81,6 @@ function DB_lo_import($conn, $file) {
 	else
 		return pg_lo_import ($conn, $file);
 }
-function DB_lo_import_text($conn, $text) {
-  if(($oid = DB_lo_create($conn))===false) return false;
-  if(($handle = DB_lo_open($conn, $oid, "w"))===false) return false;
-  if(DB_lo_write($handle, $text)===false) $oid=false;
-  DB_lo_close($handle);
-  return $oid;
-}
-
 function DB_lo_export($contest, $conn, $oid, $file) {
 	if (strcmp(phpversion(),'4.2.0')<0)
 		$stat= pg_loexport ($oid, $file, $conn);
@@ -188,8 +180,8 @@ function DBExecNonStop($conn,$sql,$txt='') {
 	if($txt=='') $txt='unknown at '. getFunctionName();
 	$result = @DB_pg_exec ($conn, $sql);
 	if (!$result) {
-		LOGError("Unable to exec SQL in the database ($txt). " .
-                         " Error=(" . pg_errormessage($conn) . ")");
+		LOGLevel("Unable to exec SQL in the database ($txt). " .
+                         " Error=(" . pg_errormessage($conn) . ")", 2);
 	}
 	return $result;
 }
@@ -245,10 +237,9 @@ function DBGetRow ($sql,$i,$c=null,$txt='') {
 	if (DBnlines($r) < $i+1) return null;
 	$a = DBRow ($r, $i);
 	if (!$a) {
-	  DBClose($c);
-	  LOGError("Unable to get row $i from a query ($txt). SQL=(" . $sql . ")");
-	  MSGError("Unable to get row from query ($txt).");
-	  exit;
+		LOGError("Unable to get row $i from a query ($txt). SQL=(" . $sql . ")");
+		MSGError("Unable to get row from query ($txt).");
+		exit;
 	}
 	return $a;
 }
@@ -297,7 +288,7 @@ function DBcrc($contest,$id, $c=null) {
         // just to return a unique string that will not match any other...
 		return "no-HASH-" . rand() . "-" . rand() . "-" . time();
 	}
-	$str = DB_lo_read($contest,$f,-1,$c);
+	$str = DB_lo_read($contest,$f);
 	DB_lo_close($f);
 	if($docommit)
 		DBExec($c, "commit work", "DBcrc(commit)");

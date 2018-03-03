@@ -15,6 +15,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////
+// Last modified 05/aug/2012 by cassio@ime.usp.br
 function DBDropTaskTable() {
 	 $c = DBConnect();
 	 $r = DBExec($c, "drop table \"tasktable\"", "DBDropTaskTable(drop table)");
@@ -203,8 +204,8 @@ function DBGetTaskToAnswerC($number,$site,$contest,$chief) {
 function DBAllTasks($contest) {
 	return DBOpenTasksSNS($contest,"x",-1);
 }
-function DBAllTasksInSites($contest,$site,$order,$adm=false) {
-  return DBOpenTasksSNS($contest,$site,-1,$order,$adm);
+function DBAllTasksInSites($contest,$site,$order) {
+	return DBOpenTasksSNS($contest,$site,-1,$order);
 }
 function DBOpenTasks($contest) {
 	return DBOpenTasksSNS($contest,"x",1);
@@ -212,10 +213,10 @@ function DBOpenTasks($contest) {
 function DBOpenTasksInSites($contest,$site) {
 	return DBOpenTasksSNS($contest,$site,1);
 }
-function DBOpenTasksSNS($contest,$site,$st,$order='task',$adm=false) {
+function DBOpenTasksSNS($contest,$site,$st,$order='task') {
 	$c = DBConnect();
 	$sql = "select distinct t.tasknumber as number, t.taskdatediff as timestamp, t.usernumber as user, ".
-		"u.username as username, u.userfullname as fullname, t.color as color, t.colorname as colorname, " .
+		"u.username as username, t.color as color, t.colorname as colorname, " .
 		"t.taskstatus as status, t.sitenumber as site, t.taskstaffnumber as staff, " .
 		"t.taskstaffsite as staffsite, t.taskdesc as description, tasksystem as system, " .
 		"t.taskfilename as filename, t.taskdata as oid, uu.username as staffname " .
@@ -225,22 +226,18 @@ function DBOpenTasksSNS($contest,$site,$st,$order='task',$adm=false) {
 		"usertable as u " .
 		"where t.contestnumber=$contest and u.contestnumber=t.contestnumber and ".
 		"u.usernumber=t.usernumber and u.usersitenumber=t.sitenumber";
-	if (strpos($site,"x")===false) {
+	if ($site != "x") {
 	        $str = explode(",", $site);
         	$sql .= " and (t.sitenumber=-1";
 	        for ($i=0;$i<count($str);$i++) {
 				if (is_numeric($str[$i])) {
 					$sql .= " or (t.sitenumber=".$str[$i];
-					if($adm == false) {
-					  $b = DBSiteInfo($contest, $str[$i]);
-					  if ($b == null) {
-					    exit;
-					  }
-					  $t = $b["currenttime"]; 
-					  //					  $sql .= " and (t.taskdatediffans<=$t or (t.taskstatus != 'done' and t.taskdatediff<=$t))";
-					  $sql .= " and t.taskdatediff<=$t";
+					$b = DBSiteInfo($contest, $str[$i]);
+					if ($b == null) {
+						exit;
 					}
-					$sql .= ") ";
+					$t = $b["currenttime"]; 
+					$sql .= " and (t.taskdatediffans<=$t or (t.taskstatus != 'done' and t.taskdatediff<=$t))) ";
 				}
 	        }
         	$sql .= ")";
@@ -282,25 +279,15 @@ function DBNewTask_old ($contest, $site, $user, $desc, $filename, $filepath, $sy
 				   'color'=>$color,
 				   'colorname'=>$colorname,
 				   'sys'=>$sys);
-	return DBNewTask($param,$c,true);
+	return DBNewTask($param,$c);
 }
 
-function DBNewTask($param, $c=null, $autotask=false) {
+function DBNewTask($param, $c=null) {
 	if(isset($param['contestnumber']) && !isset($param['contest'])) $param['contest']=$param['contestnumber'];
 	if(isset($param['sitenumber']) && !isset($param['site'])) $param['site']=$param['sitenumber'];
 	if(isset($param['usernumber']) && !isset($param['user'])) $param['user']=$param['usernumber'];
 	if(isset($param['number']) && !isset($param['tasknumber'])) $param['tasknumber']=$param['number'];
 
-	if(isset($param['taskfilename']) && !isset($param['filename'])) $param['filename']=$param['taskfilename'];
-	if(isset($param['taskdata']) && !isset($param['filepath'])) $param['filepath']=$param['taskdata'];
-	if(isset($param['taskstatus']) && !isset($param['status'])) $param['status']=$param['taskstatus'];
-	if(isset($param['taskdesc']) && !isset($param['desc'])) $param['desc']=$param['taskdesc'];
-	if(isset($param['tasksystem']) && !isset($param['sys'])) $param['sys']=$param['tasksystem'];
-	if(isset($param['filepath']))
-	  $param['filepath']=sanitizeFilename($param['filepath']);
-	if(isset($param['filename']))
-	  $param['filename']=sanitizeFilename($param['filename']);
-	
 	$ac=array('contest','site','user','desc');
 	$ac1=array('color','colorname','updatetime','filename','filepath','sys','tasknumber','status',
 			   'taskdate','taskdatediff','taskdatediffans','taskstaffnumber','taskstaffsite');
@@ -323,7 +310,7 @@ function DBNewTask($param, $c=null, $autotask=false) {
 			MSGError("DBNewTask param error: $key is not numeric");
 			return false;
 		}
-		$$key = myhtmlspecialchars($param[$key]);
+		$$key = sanitizeText($param[$key]);
 	}
 	$taskstaffnumber=-1;
 	$taskstaffsite=-1;
@@ -341,7 +328,7 @@ function DBNewTask($param, $c=null, $autotask=false) {
 	$taskdatediff=-1;
 	foreach($ac1 as $key) {
 		if(isset($param[$key])) {
-			$$key = myhtmlspecialchars($param[$key]);
+			$$key = sanitizeText($param[$key]);
 			if(isset($type[$key]) && !is_numeric($param[$key])) {
 				MSGError("DBNewTask param error: $key is not numeric");
 				return false;
@@ -393,12 +380,6 @@ function DBNewTask($param, $c=null, $autotask=false) {
 			exit;
 		}
 		$tasknumber = $a["nexttask"] + 1;
-		DBExec($c, "update sitetable set sitenexttask=$tasknumber" .
-		       " where sitenumber=$site and contestnumber=$contest and sitenexttask<$tasknumber", "DBNewTask(update site)");
-		$taskinc = myunique($tasknumber);
-		if(($taskinc % 2) == 0) $taskinc--;
-		if($autotask) $taskinc++;
-		$tasknumber = $taskinc;
 	} else {
 		$sql = "select * from tasktable as t where t.contestnumber=$contest and " .
 			"t.sitenumber=$site and t.tasknumber=$tasknumber";
@@ -409,9 +390,9 @@ function DBNewTask($param, $c=null, $autotask=false) {
 			$lr = DBRow($r,0);
 			$t = $lr['updatetime'];
 		}
-		$taskinc = $tasknumber - 1;
 	}
-
+	DBExec($c, "update sitetable set sitenexttask=$tasknumber, updatetime=".$t.
+		   " where sitenumber=$site and contestnumber=$contest and sitenexttask<$tasknumber", "DBNewTask(update site)");
 	$ret=1;
 	if($insert) {
 		if($filename!="" && $filepath!="") {
@@ -432,43 +413,13 @@ function DBNewTask($param, $c=null, $autotask=false) {
 				}
 			}
 		} else $oid="NULL";
-
-		if($taskinc >= $tasknumber) {
-		  while(true) {
-		    DBExec($c,"SAVEPOINT sp" . $tasknumber,"DBNewTask(insert task sp)");
-		    if(DBExecNonStop($c, "INSERT INTO tasktable (contestnumber, sitenumber, tasknumber, usernumber, taskdate, " .
-				       "taskdatediff, taskdatediffans, taskfilename, taskdata, taskstatus, taskdesc, tasksystem, ".
-				       "color, colorname, updatetime) " . 
-				       "VALUES ($contest, $site, $tasknumber, $user, $taskdate, $taskdatediff, $taskdatediffans, '$filename', $oid, '$status', " .
-				       "'$desc', '$sys', '$color', '$colorname', $updatetime)",
-				     "DBNewTask(insert task)")) {
-		      break;
-		    }
-		    DBExec($c,"ROLLBACK TO SAVEPOINT sp" . $tasknumber,"DBNewTask(insert task sp rollback)");
-		    $tasknumber+=2;
-		    if($tasknumber > $taskinc + 6) {
-		      DBExec($c, "INSERT INTO tasktable (contestnumber, sitenumber, tasknumber, usernumber, taskdate, " .
-			     "taskdatediff, taskdatediffans, taskfilename, taskdata, taskstatus, taskdesc, tasksystem, ".
-			     "color, colorname, updatetime) " . 
-			     "VALUES ($contest, $site, $tasknumber, $user, $taskdate, $taskdatediff, $taskdatediffans, '$filename', $oid, '$status', " .
-			     "'$desc', '$sys', '$color', '$colorname', $updatetime)",
-			     "DBNewTask(insert task)");
-		      break;
-		    }
-		  }
-		} else {
-		  if(!DBExecNonStop($c, "INSERT INTO tasktable (contestnumber, sitenumber, tasknumber, usernumber, taskdate, " .
-				       "taskdatediff, taskdatediffans, taskfilename, taskdata, taskstatus, taskdesc, tasksystem, ".
-				       "color, colorname, updatetime) " . 
-				       "VALUES ($contest, $site, $tasknumber, $user, $taskdate, $taskdatediff, $taskdatediffans, '$filename', $oid, '$status', " .
-				       "'$desc', '$sys', '$color', '$colorname', $updatetime)",
-				    "DBNewTask(insert task)")) {
-		    if($cw)
-		      DBExec($c, "commit work", "DBNewTask(commit-insert-error)");
-		    return false;
-		  }
-		}
-		if($sys=="t") $u="System";
+		DBExec($c, "INSERT INTO tasktable (contestnumber, sitenumber, tasknumber, usernumber, taskdate, " .
+			   "taskdatediff, taskdatediffans, taskfilename, taskdata, taskstatus, taskdesc, tasksystem, ".
+			   "color, colorname, updatetime) " . 
+			   "VALUES ($contest, $site, $tasknumber, $user, $taskdate, $taskdatediff, $taskdatediffans, '$filename', $oid, '$status', " .
+			   "'$desc', '$sys', '$color', '$colorname', $updatetime)",
+			   "DBNewTask(insert task)");
+              if($sys=="t") $u="System";
                 else $u = "User $user";
   
 		if($cw) {

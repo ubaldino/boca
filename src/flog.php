@@ -138,7 +138,7 @@ function DBLogInContest($name,$pass,$contest,$msg=true) {
 
 	$p = myhash($a["userpassword"] . session_id());
 	$_SESSION['usertable']['userpassword'] = $p;
-	if ($d["sitepermitlogins"]=="f" && $a["usertype"] != "admin" && $a["usertype"] != "judge" && $a["usertype"] != "site" && $a["usertype"] != "staff") {
+	if ($d["sitepermitlogins"]=="f" && $a["usertype"] != "admin" && $a["usertype"] != "judge" && $a["usertype"] != "site") {
 		LOGLevel("User $name tried to login contest $contest but logins are denied.",2);
 		if($msg) MSGError("Logins are not allowed.");
 		unset($_SESSION["usertable"]);
@@ -160,7 +160,7 @@ function DBLogInContest($name,$pass,$contest,$msg=true) {
 	if ($a["userip"] != $gip && $a["userip"] != "" && $a["usertype"] != "score") {
 		LOGLevel("User $name is using two different IPs: " . $a["userip"] . 
 			 "(" . dateconv($a["userlastlogin"]) .") and " . $gip,1);
-		if($msg && $a["usertype"] != "admin" && $a["usermultilogin"] != "t") MSGError("You are using two distinct IPs. Admin notified.");
+		if($msg && $a["usertype"] != "admin") MSGError("You are using two distinct IPs. Admin notified.");
 	}
 	if ($a["userpermitip"] != "") {
 		$ips=explode(';',$a["userpermitip"]);

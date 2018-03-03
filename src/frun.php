@@ -15,7 +15,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////
-// Last modified 29/aug/2017 by cassio@ime.usp.br
+// Last modified 09/sep/2015 by cassio@ime.usp.br
 
 function DBDropRunTable() {
 	$c = DBConnect();
@@ -186,9 +186,9 @@ function DBUpdateRunC($contest, $usersite, $usernumber, $runsite, $runnumber, $a
 				if($u['usertype']=='team') {
 					$p = DBGetProblemData ($contest, $temp["runproblem"],$c);
 					DBNewTask_old ($contest, $runsite, $team, 
-						       escape_string("\"" . $u["username"] ."\" must have a balloon for problem " . 
-								     $p[0]["problemname"] . ": " . $p[0]["fullname"]), 
-						       "", "", "t", $p[0]["color"], $p[0]["colorname"], $c);
+								   escape_string("\"" . $u["username"] ."\" must have a balloon for problem " . 
+												 $p[0]["problemname"] . ": " . $p[0]["fullname"]), 
+								   "", "", "t", $p[0]["color"], $p[0]["colorname"], $c);
 				}
 			} else {
 				LOGError("DBUpdateRunC: HIDDEN: user=$team,site=$runsite,contest=$contest would have a balloon for problem=" .  $temp["runproblem"]);
@@ -198,9 +198,9 @@ function DBUpdateRunC($contest, $usersite, $usernumber, $runsite, $runnumber, $a
 			if($u['usertype']=='team') {
 				$p = DBGetProblemData ($contest, $temp["runproblem"],$c);
 				DBNewTask_old ($contest, $runsite, $team, escape_string("\"" . 
-											$u["username"] ."\" must have _NO_ balloon for problem " . $p[0]["problemname"] . 
-											": " . $p[0]["fullname"]). ". Please verify and remove it, if needed.", "", "", 
-					       "t", $p[0]["color"], $p[0]["colorname"], $c);
+																		$u["username"] ."\" must have _NO_ balloon for problem " . $p[0]["problemname"] . 
+																		": " . $p[0]["fullname"]). ". Please verify and remove it, if needed.", "", "", 
+							   "t", $p[0]["color"], $p[0]["colorname"], $c);
 			}
 		}
 //	}
@@ -279,8 +279,8 @@ function DBRunGiveUp($number,$site,$contest,$usernumber,$usersite) {
 		if($u['usertype']=='team') {
 			$p = DBGetProblemData ($contest, $temp["runproblem"],$c);
 			DBNewTask_old ($contest, $site, $temp["usernumber"], escape_string("\"" . 
-											   $u["username"] ."\" must have _NO_ balloon for problem " . $p[0]["problemname"] . 
-											   ": " . $p[0]["fullname"]), "", "", "t", $p[0]["color"], $p[0]["colorname"], $c);
+																			   $u["username"] ."\" must have _NO_ balloon for problem " . $p[0]["problemname"] . 
+																			   ": " . $p[0]["fullname"]), "", "", "t", $p[0]["color"], $p[0]["colorname"], $c);
 		}
 	}
 
@@ -289,21 +289,18 @@ function DBRunGiveUp($number,$site,$contest,$usernumber,$usersite) {
 			 "newstatus=$newstatus", 3);
 	return true;
 }
-function DBRunDelete($number,$site,$contest,$user,$usersite,$cc=null) {
-  if($cc == null) {
-    $c = DBConnect();
-    DBExec($c, "begin work", "DBRunDelete(transaction)");
-  } else $c = $cc;
+function DBRunDelete($number,$site,$contest,$user,$usersite) {
+	$c = DBConnect();
+	DBExec($c, "begin work", "DBRunDelete(transaction)");
 	$sql = "select * from runtable as r where r.contestnumber=$contest and " .
 		"r.runsitenumber=$site and r.runnumber=$number";
 	$r = DBExec ($c, $sql . " for update", "DBRunDelete(get run for update)");
 	$n = DBnlines($r);
 	if ($n != 1) {
-	  if($cc == null)
-	    DBExec($c, "rollback work", "DBRunDelete(rollback)");
-	  LogLevel("Unable to delete a run. ".
-		   "(run=$number, site=$site, contest=$contest)",1);
-	  return false;
+		DBExec($c, "rollback work", "DBRunDelete(rollback)");
+		LogLevel("Unable to delete a run. ".
+				 "(run=$number, site=$site, contest=$contest)",1);
+		return false;
 	}
 	$temp = DBRow($r, 0);
 
@@ -319,12 +316,12 @@ function DBRunDelete($number,$site,$contest,$user,$usersite,$cc=null) {
 		if($u['usertype']=='team') {
 			$p = DBGetProblemData ($contest, $temp["runproblem"],$c);
 			DBNewTask_old ($contest, $site, $temp["usernumber"], escape_string("\"" . 
-											   $u["username"] . "\" must have _NO_ balloon for problem " . $p[0]["problemname"] . 
-											   ": " . $p[0]["fullname"]), "", "", "t", $p[0]["color"], $p[0]["colorname"], $c);
+																			   $u["username"] . "\" must have _NO_ balloon for problem " . $p[0]["problemname"] . 
+																			   ": " . $p[0]["fullname"]), "", "", "t", $p[0]["color"], $p[0]["colorname"], $c);
 		}
 	}
-	if($cc == null)
-	  DBExec($c, "commit work", "DBRunDelete(commit)");
+
+	DBExec($c, "commit work", "DBRunDelete(commit)");
 	LOGLevel("Run deleted (run=$number, site=$site, contest=$contest, user=$user(site=$usersite)).", 3);
 	return true;
 }
@@ -484,29 +481,10 @@ function DBUpdateRunAutojudging($contest, $site, $number, $ip, $answer, $stdout,
 
 	$b = DBSiteInfo($contest, $site, $c);
 
-	if(true || //cassiopc remove the true here if you want this to take effect
-	   (($retval != 1 || // for some problems, YES is not automatic
-	     $a["runproblem"] == 1 ||
-	     $a["runproblem"] == 2 ||
-	     $a["runproblem"] == 3 ||
-	     $a["runproblem"] == 4 ||
-	     $a["runproblem"] == 5 ||
-	     $a["runproblem"] == 6 ||
-	     $a["runproblem"] == 7 ||
-	     $a["runproblem"] == 8 ||
-	     $a["runproblem"] == 9 ||
-	     $a["runproblem"] == 10 ||
-	     $a["runproblem"] == 11 ||
-	     $a["runproblem"] == 12 ||
-	     $a["runproblem"] == 13)
-	    && $retval != 4 && $retval != 6)) { // but WA and TLE are automatic for all problems
-	
-          if($b["siteautojudge"]!="t") {
-	  // && (($retval != 1 && $retval != 6) || $a["runproblem"] == 1 || $a["runproblem"] == 2) ) { //cassiopc incluir automatic judging of some codes 1:YES WA:6
+	if($b["siteautojudge"]!="t") {
 		DBExec($c, "commit work", "DBUpdateRunAutojudging(commit)");
 		LOGLevel("Autojudging answered a run (run=$number, site=$site, contest=$contest, answer='$answer', retval=$retval)", 3);
 		return true;
-	  }
 	}
 
 	//echo "DEBUG: $contest, $site, " .$a["usernumber"].", $site, $number, $retval\n";
@@ -520,7 +498,7 @@ function DBUpdateRunAutojudging($contest, $site, $number, $ip, $answer, $stdout,
 	LOGLevel("Autojudging automatically answered a run (run=$number, site=$site, contest=$contest, retval=$retval, answer='$answer')", 3);
 	return true;
 }
-function DBGiveUpRunAutojudging($contest, $site, $number, $ip="", $ans="", $fromadmin=false) {
+function DBGiveUpRunAutojudging($contest, $site, $number, $ip="", $ans="") {
 	$c = DBConnect();
 	DBExec($c, "begin work", "DBGiveUpRunAutojudging(transaction)");
 	$sql = "select * from runtable as r " .
@@ -534,16 +512,6 @@ function DBGiveUpRunAutojudging($contest, $site, $number, $ip="", $ans="", $from
 	}
 	$a = DBRow($r,0);
 	$t = time();
-	
-	$b = DBSiteInfo($contest, $site, $c);
-	if(!$fromadmin && $b["siteautojudge"]=="t") {
-	  if(DBUpdateRunO($contest, $site, $a["usernumber"], $site, $number, 7, $c)==false) {  // 7 means contact staff
-	    DBExec($c, "commit work", "DBGiveUpRunAutojudging(commit prob auto)");
-	    LOGError("Unable to automatically update a run answer (run=$number, site=$site, ".
-		     "contest=$contest, answer='$ans', retval=7)");
-	    return false;
-	  }
-	}
 
 	if($ip=="") {
 		DBExec($c, "update runtable set autoenddate=null, autoanswer=null, autostdout=null, autostderr=null, " .
@@ -588,7 +556,7 @@ function DBOpenRunsSNS($contest,$site,$st,$order='run') {
 		"r.runproblem=p.problemnumber and l.contestnumber=r.contestnumber and r.usernumber=u.usernumber and r.runsitenumber=u.usersitenumber and " .
 		"l.langnumber=r.runlangnumber and a.answernumber=r.runanswer and " .
 		"a.contestnumber=r.contestnumber";
-	if (strpos($site,"x")===false) {
+	if ($site != "x") {
 		$str = explode(",", $site);
 		$sql .= " and (r.runsitenumber=-1";
 		for ($i=0;$i<count($str);$i++) {
@@ -612,8 +580,6 @@ function DBOpenRunsSNS($contest,$site,$st,$order='run') {
 			$sql .= " and (u.usertype != 'judge')";
 		$sql .= " and (not r.runstatus = 'judged') " .
 			" and not r.runstatus ~ 'deleted' order by ";
-	} else if($st == 2) {
-	  $sql .= " and (not r.runanswer1 = 0) and (not r.runanswer2 = 0) and (not r.runstatus = 'judged') order by ";
 	} else $sql .= " order by ";
 
 	if($order == "site")
@@ -644,19 +610,14 @@ function DBOpenRunsSNS($contest,$site,$st,$order='run') {
 		$a[$i] = DBRow($r,$i);
 	return $a;
 }
-function DBNewRun($param,$c=null,$allowinsert=true) {
+function DBNewRun($param,$c=null) {
 	if(isset($param['contestnumber']) && !isset($param['contest'])) $param['contest']=$param['contestnumber'];
 	if(isset($param['sitenumber']) && !isset($param['site'])) $param['site']=$param['sitenumber'];
-	if(isset($param['runsitenumber']) && !isset($param['site'])) $param['site']=$param['runsitenumber'];
 	if(isset($param['usernumber']) && !isset($param['user'])) $param['user']=$param['usernumber'];
 	if(isset($param['number']) && !isset($param['runnumber'])) $param['runnumber']=$param['number'];
 	if(isset($param['runlangnumber']) && !isset($param['lang'])) $param['lang']=$param['runlangnumber'];
 	if(isset($param['runproblem']) && !isset($param['problem'])) $param['problem']=$param['runproblem'];
-	if(isset($param['runfilename']) && !isset($param['filename'])) $param['filename']=$param['runfilename'];
-	if(isset($param['rundata']) && !isset($param['filepath'])) $param['filepath']=$param['rundata'];
-	$param['filename']=sanitizeFilename($param['filename']);
-	$param['filepath']=sanitizeFilename($param['filepath']);
-	
+
 	$ac=array('contest','site','user','problem','lang','filename','filepath');
 	$ac1=array('runnumber','rundate','rundatediff','rundatediffans','runanswer','runstatus','runjudge','runjudgesite',
 			   'runjudge1','runjudgesite1','runanswer1','runjudge2','runjudgesite2','runanswer2',
@@ -690,7 +651,7 @@ function DBNewRun($param,$c=null,$allowinsert=true) {
 			MSGError("DBNewRun param error: $key is not numeric");
 			return false;
 		}
-		$$key = myhtmlspecialchars($param[$key]);
+		$$key = sanitizeText($param[$key]);
 	}
 	$t = time();
 	$autoip='';
@@ -716,7 +677,7 @@ function DBNewRun($param,$c=null,$allowinsert=true) {
 	$runstatus='openrun';
 	foreach($ac1 as $key) {
 		if(isset($param[$key])) {
-			$$key = myhtmlspecialchars($param[$key]);
+			$$key = sanitizeText($param[$key]);
 			if(isset($type[$key]) && !is_numeric($param[$key])) {
 				MSGError("DBNewRun param error: $key is not numeric");
 				return false;
@@ -747,6 +708,7 @@ function DBNewRun($param,$c=null,$allowinsert=true) {
 		return false;
 	}
 	$a = DBRow($r,0);
+	$n = $a["nextrun"] + 1;
 	if($runnumber > 0) {
 		$sql = "select * from runtable as t where t.contestnumber=$contest and " .
 			"t.runsitenumber=$site and t.runnumber=$runnumber";
@@ -760,27 +722,11 @@ function DBNewRun($param,$c=null,$allowinsert=true) {
 				$oid1 = $lr['autostdout'];
 			if(isset($lr['autostderr']))
 				$oid2 = $lr['autostderr'];
-		} else {
-		  if(!$allowinsert) {
-		    if($cw)
-		      DBExec($c, "rollback work", "DBNewRun(rollback-noinsert)");
-		    return -1;
-		  }
 		}
-		$runinc = $runnumber - 1;
-	} else {
-	  if(!$allowinsert) {
-	    if($cw)
-	      DBExec($c, "rollback work", "DBNewRun(rollback-noinsert)");
-	    return -1;
-	  }
-	  $runnumber = $a["nextrun"] + 1;
-	  DBExec($c, "update sitetable set sitenextrun=$runnumber" .
-		 " where sitenumber=$site and contestnumber=$contest and sitenextrun<$runnumber", "DBNewRun(update site)");
-	  $runnumber = myunique($runnumber);
-	  $runinc = $runnumber;
-	}
-	
+		$n = $runnumber;
+	} else
+		$runnumber = $n;
+
 	if($rundatediff < 0) {
 		$b = DBSiteInfo($contest, $site, $c);
 		$dif = $b["currenttime"]; 
@@ -798,20 +744,12 @@ function DBNewRun($param,$c=null,$allowinsert=true) {
 			return 0;
 		}
 	} else {
-	  //cassiopc: so we let the run enter the system if it comes with a defined timestamp, but it is to decide later if it will be counted...
-	  //$b = DBSiteInfo($contest, $site, $c);
-	  $dif = $rundatediff;
-	  /*
-	    if ($dif >= $b['siteduration']) {
-	    DBExec($c, "rollback work", "DBNewRun(rollback-over)");
-	    LOGError("Tried to submit a run but the contest is over. SQL=(" . $sql . ")");
-	    MSGError("The contest is over!");
-	    return 0;
-	    }
-	  */
+		$dif = $rundatediff;
 	}
 
 	if($updatetime > $t || $insert) {
+		DBExec($c, "update sitetable set sitenextrun=$runnumber, updatetime=".$t.
+			   " where sitenumber=$site and contestnumber=$contest and sitenextrun<$runnumber", "DBNewRun(update site)");
 
 //	LOGError($autostdout);
 		if(substr($autostdout,0,7)=="base64:") {
@@ -870,49 +808,17 @@ function DBNewRun($param,$c=null,$allowinsert=true) {
 				return false;
 			}
 		}
-
-		if($runinc >= $runnumber) {
-		  while(true) {
-		    DBExec($c,"SAVEPOINT sp" . $runnumber,"DBNewRun(insert run sp)");
-		    if(DBExecNonStop($c, "INSERT INTO runtable (contestnumber, runsitenumber, runnumber, usernumber, rundate, " .
-				     "rundatediff, rundatediffans, runproblem, runfilename, rundata, runanswer, runstatus, runlangnumber, " .
-				     "runjudge, runjudgesite, runanswer1, runjudge1, runjudgesite1, runanswer2, runjudge2, runjudgesite2, ".
-				     "autoip, autobegindate, autoenddate, autoanswer, autostdout, autostderr, updatetime) " . 
-				     "VALUES ($contest, $site, $runnumber, $user, $rundate, $rundatediff, $rundatediffans, $problem, '$filename', $oid, $runanswer, " .
-				     "'$runstatus', $lang, $runjudge, $runjudgesite, $runanswer1, $runjudge1, $runjudgesite1, $runanswer2, $runjudge2, " .
-				     "$runjudgesite2, '$autoip', $autobegindate, $autoenddate, '$autoanswer', $oid1, $oid2, $updatetime)",
-				     "DBNewRun(insert run)")) break;
-		    DBExec($c,"ROLLBACK TO SAVEPOINT sp" . $runnumber,"DBNewRun(insert run sp rollback)");
-		    $runnumber++;
-		    if($runnumber > $runinc + 3) break;
-		  }
-		  if($runnumber > $runinc + 3) {
-		    DBExec($c, "INSERT INTO runtable (contestnumber, runsitenumber, runnumber, usernumber, rundate, " .
+		DBExec($c, "INSERT INTO runtable (contestnumber, runsitenumber, runnumber, usernumber, rundate, " .
 			   "rundatediff, rundatediffans, runproblem, runfilename, rundata, runanswer, runstatus, runlangnumber, " .
 			   "runjudge, runjudgesite, runanswer1, runjudge1, runjudgesite1, runanswer2, runjudge2, runjudgesite2, ".
 			   "autoip, autobegindate, autoenddate, autoanswer, autostdout, autostderr, updatetime) " . 
-			   "VALUES ($contest, $site, $runnumber, $user, $rundate, $rundatediff, $rundatediffans, $problem, '$filename', $oid, $runanswer, " .
+			   "VALUES ($contest, $site, $n, $user, $rundate, $rundatediff, $rundatediffans, $problem, '$filename', $oid, $runanswer, " .
 			   "'$runstatus', $lang, $runjudge, $runjudgesite, $runanswer1, $runjudge1, $runjudgesite1, $runanswer2, $runjudge2, " .
 			   "$runjudgesite2, '$autoip', $autobegindate, $autoenddate, '$autoanswer', $oid1, $oid2, $updatetime)",
 			   "DBNewRun(insert run)");
-		  }
-		} else {
-		  if(!DBExecNonStop($c, "INSERT INTO runtable (contestnumber, runsitenumber, runnumber, usernumber, rundate, " .
-				       "rundatediff, rundatediffans, runproblem, runfilename, rundata, runanswer, runstatus, runlangnumber, " .
-				       "runjudge, runjudgesite, runanswer1, runjudge1, runjudgesite1, runanswer2, runjudge2, runjudgesite2, ".
-				       "autoip, autobegindate, autoenddate, autoanswer, autostdout, autostderr, updatetime) " . 
-				       "VALUES ($contest, $site, $runnumber, $user, $rundate, $rundatediff, $rundatediffans, $problem, '$filename', $oid, $runanswer, " .
-				       "'$runstatus', $lang, $runjudge, $runjudgesite, $runanswer1, $runjudge1, $runjudgesite1, $runanswer2, $runjudge2, " .
-				       "$runjudgesite2, '$autoip', $autobegindate, $autoenddate, '$autoanswer', $oid1, $oid2, $updatetime)",
-				       "DBNewRun(insert run)")) {
-		    if($cw)
-		      DBExec($c, "commit work", "DBNewRun(commit-error)");
-		    return false;
-		  }
-		}
 		if($cw) {
 			DBExec($c, "commit work", "DBNewRun(commit)");
-			LOGLevel("User $user submitted a run (#$runnumber) on site #$site " .
+			LOGLevel("User $user submitted a run (#$n) on site #$site " .
 					 "(problem=$problem,filename=$filename,lang=$lang,contest=$contest,date=$t,datedif=$dif,oid=$oid).",2);
 		}
 		$ret=2;
@@ -927,8 +833,8 @@ function DBNewRun($param,$c=null,$allowinsert=true) {
 				   "autostdout=$oid1, autostderr=$oid2 " .
 				   "where runnumber=$runnumber and contestnumber=$contest and runsitenumber=$site", "DBNewRun(update run)");
 
-			if(isset($oldoid1) && is_numeric($oldoid1)) DB_lo_unlink($c,$oldoid1);
-			if(isset($oldoid2) && is_numeric($oldoid2)) DB_lo_unlink($c,$oldoid2);
+			if(is_numeric($oldoid1)) DB_lo_unlink($c,$oldoid1);
+			if(is_numeric($oldoid2)) DB_lo_unlink($c,$oldoid2);
 		}
 		if($cw) DBExec($c, "commit work", "DBNewRun(commit-update)");
 	}
@@ -940,7 +846,7 @@ function DBNewRun($param,$c=null,$allowinsert=true) {
    @mkdir("/tmp/boca");
    if (!move_uploaded_file ($filepath,
    "/tmp/boca/contest${contest}.site${site}.run${n}.user${user}.problem${problem}.time${t}.${filename}"))
-   LOGLevel("Run not saved as file (run=$runnumber,site=$site,contest=$contest", 1);
+   LOGLevel("Run not saved as file (run=$n,site=$site,contest=$contest", 1);
 */
 }
 //recebe o numero do contest, o numero do site e o numero do usuario

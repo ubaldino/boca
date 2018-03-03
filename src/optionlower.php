@@ -21,8 +21,8 @@
 //			todos os usuarios
 require_once("globals.php");
 
-if(!ValidSession()) { // || $_SESSION["usertable"]["usertype"] == 'team') {
-        InvalidSession("optionlower.php");
+if(!ValidSession()) {
+        InvalidSession("scoretable.php");
         ForceLoad("index.php");
 }
 $loc = $_SESSION['loc'];
@@ -32,16 +32,16 @@ if (isset($_GET["username"]) && isset($_GET["userfullname"]) && isset($_GET["use
 	$username = myhtmlspecialchars($_GET["username"]);
 	$userfullname = myhtmlspecialchars($_GET["userfullname"]);
 	$userdesc = myhtmlspecialchars($_GET["userdesc"]);
-	$passwordo = $_GET["passwordo"];
-	$passwordn = $_GET["passwordn"];
+	$passwordo = myhtmlspecialchars($_GET["passwordo"]);
+	$passwordn = myhtmlspecialchars($_GET["passwordn"]);
 	DBUserUpdate($_SESSION["usertable"]["contestnumber"],
-		     $_SESSION["usertable"]["usersitenumber"],
-		     $_SESSION["usertable"]["usernumber"],
-		     $_SESSION["usertable"]["username"], // $username, but users should not change their names
-		     $userfullname,
-		     $userdesc,
-		     $passwordo,
-		     $passwordn);
+				 $_SESSION["usertable"]["usersitenumber"],
+				 $_SESSION["usertable"]["usernumber"],
+				 $_SESSION["usertable"]["username"], // $username, but users should not change their names
+				 $userfullname,
+				 $userdesc,
+				 $passwordo,
+				 $passwordn);
 	ForceLoad("option.php");
 }
 
@@ -56,19 +56,18 @@ $a = DBUserInfo($_SESSION["usertable"]["contestnumber"],
 <script language="JavaScript">
 function computeHASH()
 {
-	var username, userdesc, userfull, passHASHo, passHASHn;
+	var username, userdesc, userfull, passHASHo, passHASHn1, passHASHn2;
 	if (document.form1.passwordn1.value != document.form1.passwordn2.value) return;
-	if (document.form1.passwordn1.value == document.form1.passwordo.value) return;
 	username = document.form1.username.value;
 	userdesc = document.form1.userdesc.value;
 	userfull = document.form1.userfull.value;
 
-	passHASHo = js_myhash(js_myhash(document.form1.passwordo.value)+'<?php echo session_id(); ?>');
-	passHASHn = bighexsoma(js_myhash(document.form1.passwordn2.value),js_myhash(document.form1.passwordo.value));
+	passMDo = js_myhash(js_myhash(document.form1.passwordo.value)+'<?php echo session_id(); ?>');
+	passMDn = bighexsoma(js_myhash(document.form1.passwordn2.value),js_myhash(document.form1.passwordo.value));
 	document.form1.passwordo.value = '                                                         ';
 	document.form1.passwordn1.value = '                                                         ';
 	document.form1.passwordn2.value = '                                                         ';
-	document.location='option.php?username='+username+'&userdesc='+userdesc+'&userfullname='+userfull+'&passwordo='+passHASHo+'&passwordn='+passHASHn;
+	document.location='option.php?username='+username+'&userdesc='+userdesc+'&userfullname='+userfull+'&passwordo='+passMDo+'&passwordn='+passMDn;
 }
 </script>
 
@@ -97,19 +96,19 @@ function computeHASH()
       <tr> 
         <td width="35%" align=right>Old Password:</td>
         <td width="65%">
-	  <input type="password" name="passwordo" size="20" maxlength="200" />
+	  <input type="password" name="passwordo" size="20" maxlength="20" />
         </td>
       </tr>
       <tr> 
         <td width="35%" align=right>New Password:</td>
         <td width="65%">
-	  <input type="password" name="passwordn1" size="20" maxlength="200" />
+	  <input type="password" name="passwordn1" size="20" maxlength="20" />
         </td>
       </tr>
       <tr> 
         <td width="35%" align=right>Retype New Password:</td>
         <td width="65%">
-	  <input type="password" name="passwordn2" size="20" maxlength="200" />
+	  <input type="password" name="passwordn2" size="20" maxlength="20" />
         </td>
       </tr>
     </table>

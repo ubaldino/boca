@@ -15,7 +15,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////
-// Last modified 24/oct/2017 by cassio@ime.usp.br
+// Last modified 07/sep/2015 by cassio@ime.usp.br
 require_once('db.php');
 define("dbcompat_1_4_1",true);
 
@@ -40,113 +40,8 @@ function filedownload($oid,$fname,$msg='') {
 	if($msg != '') $str .= "&msg=" . rawurlencode($msg);
 	return $str;
 }
-function dirrec($dir, $user, $group, $dirPermissions, $filePermissions, $avoid=array()) {
-  $ds = DIRECTORY_SEPARATOR;
-  if($ds=="") $ds = "/";
-  if(is_dir($dir)) {
-    $u = posix_getpwuid(fileowner($dir));
-    $un = $u['name'];
-    $ug = $u['gid'];
-    if($un != $user) echo "user of $dir must be fixed!!\n";
-    if($ug != $group) echo "group of $dir must be fixed!!\n";
-    if(@chmod($dir, $dirPermissions) === false) echo "cannot chmod $dir\n";
-    if(($dp = @opendir($dir)) === false) return;
-    while($file = readdir($dp)) {
-      if (($file == ".") || ($file == ".."))
-	continue;
-      $cont = false;
-      for($i = 0; $i < count($avoid); $i++)
-	if(substr($file, strlen($file)-strlen($avoid[$i])) == $avoid[$i]) {
-	  $cont = true;
-	  break;
-	}
-      if($cont) continue;
-      $fullPath = $dir . $ds . $file;
-      dirrec($fullPath, $user, $group, $dirPermissions, $filePermissions, $avoid);
-    }
-    closedir($dp);
-  } else {
-    if(!is_link($dir)) {
-      //      $t = myunique();
-      //@copy($dir, $dir . '.tmp' . $t);
-      //@rename($dir . '.tmp' . $t, $dir);
-      $u = posix_getpwuid(fileowner($dir));
-      $un = $u['name'];
-      $ug = $u['gid'];
-      if($un != $user) echo "user of $dir must be fixed!!\n";
-      if($ug != $group) echo "group of $dir must be fixed!!\n";
-      if(@chmod($dir, $filePermissions)=== false) echo "cannot chmod $dir\n";
-    }
-  }
-}
 
-function fixbocadir($dir,$full=false) {
-	if(is_dir($dir)) {
-	  $ds = DIRECTORY_SEPARATOR;
-	  if($ds=="") $ds = "/";
-	  $u = posix_getpwuid(fileowner($dir));
-	  $un = $u['name'];
-	  $ug = $u['gid'];
-	  @file_put_contents($dir . $ds . 'private' . $ds . '.htaccess', "Deny from all\n");
-	  @touch($dir . $ds . 'private' . $ds . 'remotescores' . $ds . 'otherservers');
-	  if($full)
-	    $d = array('problemtmp','runtmp','scoretmp','remotescores','remotescoresfull','comp','logexternal','runslog');
-	  else
-	    $d = array('problemtmp','runtmp','scoretmp');
-	  foreach($d as $a) cleardir($dir . $ds . 'private' . $ds . $a,true,true,false);
-	  dirrec($dir, $un, $ug, 0755, 0644, array('private', '.oldboca'));
-	  dirrec($dir . $ds . 'private', $un, $ug, 0750, 0640, array('.oldboca'));
-	  if(@file_put_contents($dir . $ds . 'private' . $ds . '.htaccess', "Deny from all\n") === false) return false;
-	  return true;
-	} else {
-	  return false;
-	}	
-}
-function updatebocafile($dirboca, $dirz, $t) {
-  $ok = 0;
-  if(is_dir($dirz)) {
-    $ds = DIRECTORY_SEPARATOR;
-    if($ds=="") $ds = "/";
-    $d = @opendir($dirz);
-    while (($file = @readdir($d)) !== false) {
-      if($file != '.' && $file != '..')
-	$ok = $ok + updatebocafile($dirboca . $ds . $file, $dirz . $ds . $file, $t);
-    }
-    @closedir($d);
-    @cleardir($dirz);
-  } else {
-    if(is_file($dirboca)) {
-      copy($dirboca, $dirboca . '.' . $t . '.oldboca');
-    } else {
-      file_put_contents($dirboca . '.' . $t . '.oldboca', "");
-    }
-    @chmod($dirboca . '.' . $t . '.oldboca', 0000);
-    if(rename($dirz, $dirboca) === true) $ok=1;
-  }
-  return $ok;
-}
-function revertupdatebocafile($dirboca, $t) {
-  $ok = 0;
-  if(is_dir($dirboca)) {
-    $ds = DIRECTORY_SEPARATOR;
-    if($ds=="") $ds = "/";
-    $d = @opendir($dirboca);
-    while (($file = @readdir($d)) !== false) {
-      if($file != '.' && $file != '..')
-	$ok = $ok + revertupdatebocafile($dirboca . $ds . $file, $t);
-    }
-    @closedir($d);
-  } else {
-    if(is_file($dirboca) && substr($dirboca, strlen($dirboca) - strlen('.' . $t . '.oldboca')) == '.' . $t . '.oldboca') {
-      @chmod($dirboca, 0600);
-      if(@copy($dirboca, substr($dirboca, 0, strlen($dirboca) - strlen('.' . $t . '.oldboca'))) === true) $ok=1;
-      @chmod($dirboca, 0000);
-    }
-  }
-  return $ok;
-}
-function cleardir($dir,$cddir=true,$secure=true,$removedir=true) {
-  if(file_exists($dir)) {
+function cleardir($dir,$cddir=true,$secure=false) {
 	if(is_dir($dir)) {
 		$ds = DIRECTORY_SEPARATOR;
 		if($ds=="") $ds = "/";
@@ -156,18 +51,31 @@ function cleardir($dir,$cddir=true,$secure=true,$removedir=true) {
 		}
 		$d = @opendir($dir);
 		while (($file = @readdir($d)) !== false) {
-		  if($file != '.' && $file != '..')
-		    cleardir($dir . $ds . $file, false, $secure, true);
+			if(!is_dir($dir . $ds . $file)) {
+				if($secure)
+					file_put_contents($dir . $ds . $file,str_repeat('XXXXXXXXXX',10000));
+				@unlink($dir . $ds . $file);
+			}
+			else {
+				if($file != '.' && $file != '..') {
+					$cdir1 = $dir . $ds . $file;
+					$d1 = @opendir($cdir1);
+					while (($file1 = @readdir($d1)) !== false)
+						if(!is_dir($cdir1 . $ds . $file1)) {
+							if($secure)
+								file_put_contents($cdir1 . $ds . $file1,str_repeat('XXXXXXXXXX',10000));
+							@unlink($cdir1 . $ds . $file1);
+						}
+					@rmdir($cdir1);
+				}
+			}
 		}
-		@closedir($d);
-		if($removedir)
-		  @rmdir($dir);
+		@rmdir($dir);
 	} else {
-	  if($secure && !is_link($dir))
-	    file_put_contents($dir,str_repeat('XXXXXXXXXX',10000));
-	  @unlink($dir);
+		if($secure)
+			file_put_contents($dir,str_repeat('XXXXXXXXXX',10000));
+		@unlink($dir);
 	}
-  }
 }
 
 // gen random alphanum string
@@ -198,22 +106,6 @@ function sanitizeText($text, $doamp=true)
     //$text = escape_string($text); 
     $text = addslashes($text); 
     return $text; 
-}
-function sanitizeFilename($text) 
-{
-  $text = str_replace("*", "_", $text);
-  $text = str_replace("$", "_", $text);
-  $text = str_replace(")", "_", $text);
-  $text = str_replace("(", "_", $text);
-  $text = str_replace(";", "_", $text);
-  $text = str_replace("&", "_", $text);
-  $text = str_replace("<", "_", $text);
-  $text = str_replace(">", "_", $text); 
-  $text = str_replace("\"", "_", $text); 
-  $text = str_replace("'", "_", $text);
-  $text = str_replace("`", "_", $text);
-  $text = addslashes($text); 
-  return $text; 
 }
 
 function unsanitizeText($text) {
@@ -314,28 +206,19 @@ function IntrusionNotify($where) {
 function ValidSession() {
 	if (!isset($_SESSION["usertable"])) return(FALSE);
 	$gip = getIP();
-	// cassiopc: sites that use multiple IP addresses to go out create a serious problem to check IPs...
-//	if(substr($_SESSION["usertable"]["userip"],0,6) != '157.92') {
-//	if ($_SESSION["usertable"]["userip"] != $gip ||
-//		$_SESSION["usertable"]["usersession"] != session_id()) return(FALSE);
-  //      } else {
-	if($_SESSION["usertable"]["usersession"] != session_id()) return(FALSE);
-    //    }	
+	if ($_SESSION["usertable"]["userip"] != $gip ||
+		$_SESSION["usertable"]["usersession"] != session_id()) return(FALSE);
+	if($_SESSION["usertable"]["usermultilogin"] == 't') return(TRUE);
+	
 	$tmp = DBUserInfo($_SESSION["usertable"]["contestnumber"], 
 					  $_SESSION["usertable"]["usersitenumber"], 
 					  $_SESSION["usertable"]["usernumber"]);
-	if($tmp['usersession']=='') return(FALSE);
-	if($_SESSION["usertable"]["usermultilogin"] == 't') return(TRUE);
-
-	if ($tmp["userip"] != $gip) return(FALSE); //cassiopc: they may create a problem here too...
+	if ($tmp["userip"] != $gip) return(FALSE);
 	return(TRUE);
 }
 // grava erro no arquivo de log
 function LOGError($msg) {
 	LOGLevel($msg,0,false);
-}
-function LOGInfo($msg) {
-	LOGLevel($msg,2,false);
 }
 // grava linha no arquivo de log com o nivel especificado
 function LOGLevel($msg,$level,$dodb=true) {
@@ -370,15 +253,6 @@ function LOGLevel($msg,$level,$dodb=true) {
 	if ($dodb && isset($_SESSION["usertable"]))
 		DBNewLog($_SESSION["usertable"]["contestnumber"], $_SESSION["usertable"]["usersitenumber"], 
 				 $_SESSION["usertable"]["usernumber"], $type, getIP(), $msga, "");
-}
-function mytime() {
-  return time();
-}
-function mymtime() {
-  return microtime(true);
-}
-function myunique($val=0) {
-  return (((int)(100*microtime(true))) % 10000000)*100 + ($val % 100);
 }
 //retorna data e hora atuais
 function now () {
@@ -448,7 +322,7 @@ function match_network ($nets, $ip) {
 
         $ip_arr   = explode('/', $net);
         $net_long = ip2long(trim($ip_arr[0]));
-		if(count($ip_arr) > 1 && trim($ip_arr[1]) != '') {
+		if(trim($ip_arr[1]) != '') {
 			$x        = ip2long(trim($ip_arr[1]));
 			$mask     = long2ip($x) == ((int) trim($ip_arr[1])) ? $x : 0xffffffff << (32 - ((int) trim($ip_arr[1])));
         } else { 
