@@ -16,6 +16,23 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////
 // Last modified 05/aug/2012 by cassio@ime.usp.br
-require('header.php');
-require('../scorelower_public.php');
+require_once("globals.php");
+$_SESSION["usertable"]["contestnumber"]=DBGetActiveContest()["contestnumber"];
+$_SESSION["usertable"]["usersitenumber"]=array_pop(DBAllSiteInfo(DBGetActiveContest()["contestnumber"]))["sitenumber"];
+$_SESSION["usertable"]["usertype"]="score";
+if (($s = DBSiteInfo($_SESSION["usertable"]["contestnumber"],$_SESSION["usertable"]["usersitenumber"])) == null)
+  ForceLoad("../index.php");
+if ($_SESSION["usertable"]["usertype"]!="judge" &&
+    $_SESSION["usertable"]["usertype"]!="admin") $ver=true;
+else $ver=false;
+if($_SESSION["usertable"]["usertype"]=="score") $des=false;
+else $des=true;
+// temp do carlinhos (placar de judge == placar de time)
+//if ($_SESSION["usertable"]["usertype"]=="judge") $ver = true;
+if ($s["currenttime"] >= $s["sitelastmilescore"] && $ver)
+    echo "<br><center>Scoreboard frozen</center>";
+require('scoretable_public.php');
 ?>
+
+</body>
+</html>

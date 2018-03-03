@@ -32,17 +32,7 @@ require_once("../db.php");
 echo "<html><head><title>Score Board Page</title>\n";
 echo "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n";
 echo "<link rel=stylesheet href=\"../Css.php\" type=\"text/css\">\n";
-echo "<meta http-equiv=\"refresh\" content=\"60\" />"; 
-
-if(!ValidSession()) {
-	InvalidSession("score/index.php");
-        ForceLoad("../index.php");
-}
-if($_SESSION["usertable"]["usertype"] != "score") {
-	IntrusionNotify("score/index.php");
-        ForceLoad("../index.php");
-}
-
+// echo "<meta http-equiv=\"refresh\" content=\"60\" />";
 echo "</head><body><table border=1 width=\"100%\">\n";
 echo "<tr><td nowrap bgcolor=\"#cc9966\" align=center>";
 echo "<img src=\"../images/smallballoontransp.png\" alt=\"\">";
