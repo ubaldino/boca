@@ -16,13 +16,5 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////
 // Last modified 05/aug/2012 by cassio@ime.usp.br
-ob_start();
-header ("Expires: " . gmdate("D, d M Y H:i:s") . " GMT");
-header ("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
-header ("Cache-Control: no-cache, must-revalidate");
-header ("Pragma: no-cache");
-header("Content-Type: application/json; charset=utf-8");
-session_start();
-ob_end_flush();
-require_once("../globals.php");
-require_once("../db.php");
+require('header.php');
+require('../scorelower_public.php');

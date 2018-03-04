@@ -21,13 +21,13 @@ function balloonpng($dir,$get_s,$get_color=null,$get_file=null) {
 		$smile=imagecreatefrompng($dir . "/images/smallballoontransp.png");
 	else
 		$smile=imagecreatefrompng($dir . "/images/bigballoontransp.png");
-	
+
 	imageSaveAlpha($smile, true);
 	if($get_color != null) {
 		$r = hexdec( substr($get_color, 0, 2) );
 		$g = hexdec( substr($get_color, 2, 2) );
 		$b = hexdec( substr($get_color, 4, 2) );
-		
+
 		$kek=imagecolorallocate($smile,$r,$g,$b);
 		if($get_s)
 			imagefill($smile,5,5,$kek);

@@ -96,16 +96,16 @@ function DBScore($contest, $verifylastmile, $hor=-1, $globalsite='0') {
 		$fc=file_get_contents($fname);
 		if(($arr = unserialize(base64_decode($fc)))===false) {
 			LOGError("File " . sanitizeText($fname) . " is not compatible");
-		} else { 
+		} else {
 			if(is_array($arr)) {
 				if(isset($arr['site'])) {
-					$site=$arr['site']; 
+					$site=$arr['site'];
 					if($overloadsite>0) $site=$overloadsite;
 					if(!in_array($site, $whichsites) && !in_array(0,$whichsites)) continue;
 					$fine=1;
 					reset($resp);
 					while(list($e, $c) = each($resp)) {
-						if($resp[$e]['site']==$site) { $fine=0; break; }					
+						if($resp[$e]['site']==$site) { $fine=0; break; }
 					}
 					if($fine) {
 						list($arr,$data0) = DBScoreSite($contest, $site, $verifylastmile, $hor, $arr);
@@ -184,9 +184,9 @@ function DBBalloon($contest, $site, $user, $problem, $localsite=true, $c=null) {
 		"runtable as r, answertable as a where r.runanswer=a.answernumber and " .
 		"a.contestnumber=$contest and r.usernumber=$user and r.runproblem=$problem and " .
 		"r.contestnumber=$contest and r.runsitenumber=$site and (r.runstatus ~ 'judged' or r.runstatus ~ 'judged+') and " .
-		"r.rundatediff>=0 " . 
+		"r.rundatediff>=0 " .
 				"and r.rundatediff<=$tf " .
-				"and r.rundatediffans<=$ta " . 
+				"and r.rundatediffans<=$ta " .
 		"order by r.rundatediff", "DBBalloon(get runs)");
 	$n = DBnlines($r);
 	for ($i=0;$i<$n;$i++) {
@@ -218,7 +218,7 @@ function DBRecentNews($contest, $site, $verifylastmile, $minutes=3) {
 		"runtable as r, answertable as a, problemtable as p, usertable as u where r.runanswer=a.answernumber and " .
 		"p.contestnumber=$contest and a.contestnumber=$contest and r.usernumber = u.usernumber and u.usertype='team' and " .
 		"p.problemnumber=r.runproblem and r.contestnumber=$contest and r.runsitenumber=$site and u.userenabled='t' and " .
-		"r.rundatediff>=$taa and r.rundatediff<=$tf and r.rundatediff<=$ta and u.contestnumber=$contest and u.usersitenumber=$site and " . 
+		"r.rundatediff>=$taa and r.rundatediff<=$tf and r.rundatediff<=$ta and u.contestnumber=$contest and u.usersitenumber=$site and " .
                 "((a.yes='t' and r.rundatediffans<=$ta) or (r.rundatediffans>$ta)) " .
 		"group by a.yes,p.problemcolor,p.problemcolorname,p.problemname,u.userfullname,u.usernumber,p.problemnumber,fut order by time", "DBRecentNews(get runs)");
 	$n = DBnlines($r);
@@ -261,7 +261,8 @@ function DBScoreSite($contest, $site, $verifylastmile, $hor=-1, $data=null) {
 			$a = DBRow($r,$i);
 			$resp[$a["usernumber"]]["user"]=$a["usernumber"];
 			$resp[$a["usernumber"]]["site"]=$a["usersitenumber"];
-			$resp[$a["usernumber"]]["username"]=$a["username"];
+            $resp[$a["usernumber"]]["username"]=$a["username"];
+			$resp[$a["usernumber"]]["usericpcid"]=$a["usericpcid"];
 			$resp[$a["usernumber"]]["usertype"]=$a["usertype"];
 			$resp[$a["usernumber"]]["userfullname"]=$a["userfullname"];
 			$resp[$a["usernumber"]]["totaltime"]=0;
@@ -274,7 +275,7 @@ function DBScoreSite($contest, $site, $verifylastmile, $hor=-1, $data=null) {
 					"runtable as r, answertable as a, problemtable as p where r.runanswer=a.answernumber and " .
 					"a.contestnumber=$contest and p.problemnumber=r.runproblem and p.contestnumber=$contest and " .
 					"r.contestnumber=$contest and r.runsitenumber=$site and (r.runstatus ~ 'judged' or r.runstatus ~ 'judged+') and " .
-					"r.rundatediff>=0 and r.rundatediff<=$tf and r.rundatediffans<=$ta " . 
+					"r.rundatediff>=0 and r.rundatediff<=$tf and r.rundatediffans<=$ta " .
 					"order by r.usernumber, r.runproblem, r.rundatediff", "DBScoreSite(get runs)");
 		$n = DBnlines($r);
 		$a = array();
@@ -315,9 +316,9 @@ function DBScoreSite($contest, $site, $verifylastmile, $hor=-1, $data=null) {
 			$k++;
 			$i++;
 		}
-		
+
 		$resp[$user]["problem"][$problem]["count"] = $k;
-		if ($i>=$n) break; 
+		if ($i>=$n) break;
 		if($a[$i]["anstime"] <= $ta && $a[$i]["user"]==$user && $a[$i]["problem"]==$problem && $a[$i]["yes"]=='t') {
 			$timet = (int) (($a[$i]["time"])/60);
 			if(!isset($resp[$user]["first"]) || $timet < $resp[$user]["first"])
